@@ -33,7 +33,7 @@ class AppDrawer extends StatelessWidget {
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         selected: isActive,
-        selectedTileColor: tealColor.withOpacity(0.1),
+        selectedTileColor: tealColor.withAlpha(25),
         selectedColor: tealColor,
         leading: Icon(
           icon,
@@ -71,22 +71,30 @@ class AppDrawer extends StatelessWidget {
         children: [
           // Drawer Header Card (Styled similarly to React Top Header Dropdown)
           Container(
-            padding: const EdgeInsets.only(top: 50, left: 20, right: 20, bottom: 20),
+            padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 25),
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[100]!),
+              color: tealColor,
+              borderRadius: const BorderRadius.only(
+                bottomRight: Radius.circular(30),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: tealColor.withAlpha(50),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 26,
-                  backgroundColor: tealColor,
+                  radius: 28,
+                  backgroundColor: Colors.white,
                   child: Text(
                     initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
+                    style: TextStyle(
+                      color: tealColor,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -99,9 +107,9 @@ class AppDrawer extends StatelessWidget {
                       Text(
                         displayName,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Colors.white,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -111,26 +119,28 @@ class AppDrawer extends StatelessWidget {
                         email,
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey[500],
+                          color: Colors.white.withAlpha(200),
                           fontWeight: FontWeight.w500,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       if (user?.roleLabel != null)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: tealColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(6),
+                            color: Colors.white.withAlpha(40),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white.withAlpha(60)),
                           ),
                           child: Text(
                             user!.roleLabel!.toUpperCase(),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.bold,
-                              color: tealColor,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
