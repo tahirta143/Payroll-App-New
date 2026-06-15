@@ -49,16 +49,23 @@ class AttendanceProvider extends ChangeNotifier {
   }
 
   Future<void> fetchAllEmployees() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
     try {
       final response = await ApiService().get('/api/employees');
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         final list = decoded['employees'] as List? ?? [];
         _filterEmployees = list.map((item) => EmployeeModel.fromJson(item)).toList();
-        notifyListeners();
       }
     } catch (e) {
       debugPrint('fetchAllEmployees error: $e');
+      _error = 'Network error: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

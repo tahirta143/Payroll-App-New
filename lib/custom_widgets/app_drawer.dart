@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth/auth_provider.dart';
+import '../screens/home/main_navigation_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final String activeRoute;
@@ -63,6 +64,16 @@ class AppDrawer extends StatelessWidget {
     final tealColor = const Color(0xFF007F70);
 
     final isEmployee = user?.employeeId != null;
+    final mainNav = context.findAncestorStateOfType<MainNavigationScreenState>();
+
+    void navigateToTab(String routeName) {
+      Navigator.pop(context);
+      if (mainNav != null) {
+        mainNav.changeTabByRoute(routeName);
+      } else {
+        Navigator.pushNamedAndRemoveUntil(context, routeName, (route) => false);
+      }
+    }
 
     return Drawer(
       backgroundColor: Colors.white,
@@ -163,10 +174,7 @@ class AppDrawer extends StatelessWidget {
                   label: 'Home',
                   routeName: '/home',
                   isActive: activeRoute == '/home',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/home');
-                  },
+                  onTap: () => navigateToTab('/home'),
                 ),
                 // Dashboard (Admin or Employee dashboard check)
                 if (authProvider.hasPermission('can-view-dashboard') || isEmployee)
@@ -176,10 +184,7 @@ class AppDrawer extends StatelessWidget {
                     label: 'Dashboard',
                     routeName: '/dashboard',
                     isActive: activeRoute == '/dashboard',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushReplacementNamed(context, '/dashboard');
-                    },
+                    onTap: () => navigateToTab('/dashboard'),
                   ),
                 // Attendance System
                 if (authProvider.hasPermission('can-view-attendence') || isEmployee)
@@ -189,10 +194,7 @@ class AppDrawer extends StatelessWidget {
                     label: 'Attendance',
                     routeName: '/attendance',
                     isActive: activeRoute == '/attendance',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushReplacementNamed(context, '/attendance');
-                    },
+                    onTap: () => navigateToTab('/attendance'),
                   ),
                 // Leave applications
                 if (authProvider.hasPermission('can-view-leave-application') || isEmployee)
@@ -202,10 +204,7 @@ class AppDrawer extends StatelessWidget {
                     label: 'Leaves Log',
                     routeName: '/leaves',
                     isActive: activeRoute == '/leaves',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushReplacementNamed(context, '/leaves');
-                    },
+                    onTap: () => navigateToTab('/leaves'),
                   ),
                 // Short Leaves
                 if (authProvider.hasPermission('can-view-short-leaves') || isEmployee)
@@ -215,10 +214,7 @@ class AppDrawer extends StatelessWidget {
                     label: 'Short Leaves',
                     routeName: '/short-leaves',
                     isActive: activeRoute == '/short-leaves',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.pushReplacementNamed(context, '/short-leaves');
-                    },
+                    onTap: () => navigateToTab('/short-leaves'),
                   ),
                 // Payroll Salaries
                 if (authProvider.hasPermission('can-view-salary') || isEmployee)
@@ -228,9 +224,21 @@ class AppDrawer extends StatelessWidget {
                     label: isEmployee ? 'Salary Slip' : 'Salary Management',
                     routeName: '/salary',
                     isActive: activeRoute == '/salary',
+                    onTap: () => navigateToTab('/salary'),
+                  ),
+                // Salary Reports Screen
+                if (authProvider.hasPermission('can-view-salary') || isEmployee)
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.assessment_outlined,
+                    label: 'Salary Reports',
+                    routeName: '/salary-reports',
+                    isActive: activeRoute == '/salary-reports',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.pushReplacementNamed(context, '/salary');
+                      if (activeRoute != '/salary-reports') {
+                        Navigator.pushNamed(context, '/salary-reports');
+                      }
                     },
                   ),
               ],

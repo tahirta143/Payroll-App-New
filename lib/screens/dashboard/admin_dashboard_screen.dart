@@ -7,6 +7,11 @@ import '../../providers/dashboard/dashboard_provider.dart';
 import '../../custom_widgets/app_drawer.dart';
 import '../../custom_widgets/inkdrop_loader.dart';
 
+import '../employees/employees_screen.dart';
+import '../attendance/absents_screen.dart';
+import '../attendance/today_attendance_screen.dart';
+import '../leaves/leaves_screen.dart';
+
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
@@ -20,9 +25,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
-    });
+    _loadData();
   }
 
   void _loadData() {
@@ -63,85 +66,89 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required double change,
     required IconData icon,
     required Color color,
+    required VoidCallback onTap,
   }) {
     final positive = change >= 0;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 15,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[500],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  value.toInt().toString(),
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 2.0),
-                  child: Row(
-                    children: [
-                      Icon(
-                        positive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                        color: positive ? const Color(0xFF10B981) : Colors.red,
-                        size: 11,
-                      ),
-                      Text(
-                        '${change.abs().toInt()}%',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: positive ? const Color(0xFF10B981) : Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 15,
+              spreadRadius: 2,
+              offset: const Offset(0, 4),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, color: color, size: 16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    value.toInt().toString(),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          positive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                          color: positive ? const Color(0xFF10B981) : Colors.red,
+                          size: 11,
+                        ),
+                        Text(
+                          '${change.abs().toInt()}%',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: positive ? const Color(0xFF10B981) : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -465,6 +472,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             change: overview.kpis.firstWhere((k) => k.key == 'employees').change,
                             icon: Icons.people_outline,
                             color: Colors.indigo,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const EmployeesScreen()),
+                              );
+                            },
                           ),
                           _buildKpiCard(
                             label: 'Present Today',
@@ -472,6 +485,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             change: overview.kpis.firstWhere((k) => k.key == 'present').change,
                             icon: Icons.check_circle_outline,
                             color: Colors.teal,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => TodayAttendanceScreen(initialDate: _selectedDate)),
+                              );
+                            },
                           ),
                           _buildKpiCard(
                             label: 'On Leave',
@@ -479,6 +498,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             change: overview.kpis.firstWhere((k) => k.key == 'leaves').change,
                             icon: Icons.calendar_today_outlined,
                             color: Colors.amber[800]!,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const LeavesScreen()),
+                              );
+                            },
                           ),
                           _buildKpiCard(
                             label: 'Absent',
@@ -486,6 +511,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             change: overview.kpis.firstWhere((k) => k.key == 'absents').change,
                             icon: Icons.remove_circle_outline,
                             color: Colors.red[600]!,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => AbsentsScreen(initialDate: _selectedDate)),
+                              );
+                            },
                           ),
                         ],
                       ),

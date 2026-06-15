@@ -21,9 +21,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
-    });
+    _loadData();
   }
 
   void _loadData() {

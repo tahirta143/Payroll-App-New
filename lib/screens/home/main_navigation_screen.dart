@@ -19,17 +19,39 @@ class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key, this.initialIndex = 0});
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<MainNavigationScreen> createState() => MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
   final GlobalKey<CurvedNavigationBarState> _bottomNavigationKey = GlobalKey();
+  final List<int> _history = [];
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+  }
+
+  void changeTab(int index, {bool addToHistory = true}) {
+    if (_currentIndex == index) return;
+    setState(() {
+      if (addToHistory) {
+        _history.remove(index); // Remove existing instance to avoid duplicate cycles
+        _history.add(_currentIndex);
+      }
+      _currentIndex = index;
+      _bottomNavigationKey.currentState?.setPage(index);
+    });
+  }
+
+  void changeTabByRoute(String routePath, {bool addToHistory = true}) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final tabs = _getTabs(authProvider);
+    final index = tabs.indexWhere((tab) => tab.routePath == routePath);
+    if (index != -1) {
+      changeTab(index, addToHistory: addToHistory);
+    }
   }
 
   // Helper descriptor class for tabs
@@ -48,12 +70,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isEmployee = auth.user?.employeeId != null;
     if (auth.hasPermission('can-view-dashboard') || isEmployee) {
       tabs.add(_NavigationTab(
-        label: 'Dashboard',
-        icon: Icons.dashboard_outlined,
-        page: isEmployee
-            ? const EmployeeDashboardScreen()
-            : const AdminDashboardScreen(),
-        routePath: '/dashboard',
+         label: 'Dashboard',
+         icon: Icons.dashboard_outlined,
+         page: isEmployee
+             ? const EmployeeDashboardScreen()
+             : const AdminDashboardScreen(),
+         routePath: '/dashboard',
       ));
     }
 
@@ -113,32 +135,49 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final activeTab = tabs[_currentIndex];
     const tealColor = Color(0xFF007F70);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      drawer: AppDrawer(activeRoute: activeTab.routePath),
-      body: activeTab.page,
-      bottomNavigationBar: CurvedNavigationBar(
-        key: _bottomNavigationKey,
-        index: _currentIndex,
-        height: 58.0,
-        items: tabs.map((tab) {
-          final isSelected = tabs.indexOf(tab) == _currentIndex;
-          return Icon(
-            tab.icon,
-            size: 24,
-            color: isSelected ? Colors.white : Colors.grey[600],
-          );
-        }).toList(),
-        color: Colors.white,
-        buttonBackgroundColor: tealColor,
-        backgroundColor: const Color(0xFFF8F9FA),
-        animationCurve: Curves.easeInOut,
-        animationDuration: const Duration(milliseconds: 300),
-        onTap: (index) {
+    return PopScope(
+      canPop: _currentIndex == 0 && _history.isEmpty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        
+        if (_history.isNotEmpty) {
+          final prevIndex = _history.removeLast();
           setState(() {
-            _currentIndex = index;
+            _currentIndex = prevIndex;
+            _bottomNavigationKey.currentState?.setPage(prevIndex);
           });
-        },
+        } else {
+          setState(() {
+            _currentIndex = 0;
+            _bottomNavigationKey.currentState?.setPage(0);
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        drawer: AppDrawer(activeRoute: activeTab.routePath),
+        body: activeTab.page,
+        bottomNavigationBar: CurvedNavigationBar(
+          key: _bottomNavigationKey,
+          index: _currentIndex,
+          height: 58.0,
+          items: tabs.map((tab) {
+            final isSelected = tabs.indexOf(tab) == _currentIndex;
+            return Icon(
+              tab.icon,
+              size: 24,
+              color: isSelected ? Colors.white : Colors.grey[600],
+            );
+          }).toList(),
+          color: Colors.white,
+          buttonBackgroundColor: tealColor,
+          backgroundColor: const Color(0xFFF8F9FA),
+          animationCurve: Curves.easeInOut,
+          animationDuration: const Duration(milliseconds: 300),
+          onTap: (index) {
+            changeTab(index);
+          },
+        ),
       ),
     );
   }

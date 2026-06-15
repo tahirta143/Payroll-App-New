@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 int _parseInt(dynamic val) {
   if (val == null) return 0;
   if (val is int) return val;
@@ -27,6 +30,9 @@ class AttendanceModel {
   final String? timeOut;
   final String? machineCode;
   final String? createdAt;
+  final String? dutyShiftStart;
+  final String? dutyShiftEnd;
+  final String? employeeImage;
 
   AttendanceModel({
     required this.id,
@@ -41,6 +47,9 @@ class AttendanceModel {
     this.timeOut,
     this.machineCode,
     this.createdAt,
+    this.dutyShiftStart,
+    this.dutyShiftEnd,
+    this.employeeImage,
   });
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
@@ -57,6 +66,9 @@ class AttendanceModel {
       timeOut: json['time_out']?.toString(),
       machineCode: json['machine_code']?.toString(),
       createdAt: json['created_at']?.toString(),
+      dutyShiftStart: json['duty_shift_start']?.toString() ?? '09:00',
+      dutyShiftEnd: json['duty_shift_end']?.toString() ?? '18:00',
+      employeeImage: json['employee_image']?.toString(),
     );
   }
 
@@ -74,7 +86,59 @@ class AttendanceModel {
       'time_out': timeOut,
       'machine_code': machineCode,
       'created_at': createdAt,
+      'duty_shift_start': dutyShiftStart,
+      'duty_shift_end': dutyShiftEnd,
+      'employee_image': employeeImage,
     };
+  }
+
+  // ✅ New Logic implementation
+  bool get isPresent => timeIn != null && timeIn!.isNotEmpty && timeIn != '--:--';
+
+  DateTime _parseDateTime(String timeStr) {
+    try {
+      final dt = DateTime.parse(date);
+      final parts = timeStr.split(':');
+      return DateTime(dt.year, dt.month, dt.day, int.parse(parts[0]), int.parse(parts[1]));
+    } catch (_) {
+      return DateTime.now();
+    }
+  }
+
+  int get lateMinutes {
+    if (!isPresent) return 0;
+
+    try {
+      // Logic from user: 9:15 rule
+      // If 9:15 or before -> not late
+      // If after 9:15 -> late = timeIn - 9:00
+      
+      final dt = DateTime.parse(date);
+      final officeStart = DateTime(dt.year, dt.month, dt.day, 9, 0);
+      final graceDeadline = DateTime(dt.year, dt.month, dt.day, 9, 15);
+      final arrival = _parseDateTime(timeIn!);
+
+      if (!arrival.isAfter(graceDeadline)) return 0;
+
+      return arrival.difference(officeStart).inMinutes;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  bool get isLate => lateMinutes > 0;
+
+  int get overtimeMinutes {
+    if (timeOut == null || timeOut!.isEmpty || timeOut == '--:--') return 0;
+    try {
+      final departure = _parseDateTime(timeOut!);
+      final shiftEnd = _parseDateTime(dutyShiftEnd ?? '18:00');
+      
+      if (departure.isAfter(shiftEnd)) {
+        return departure.difference(shiftEnd).inMinutes;
+      }
+    } catch (_) {}
+    return 0;
   }
 }
 
@@ -146,6 +210,7 @@ class EmployeeModel {
   final String? bankAccountNumber;
   final DutyShiftModel? dutyShift;
   final String? designationName;
+  final String? image;
 
   EmployeeModel({
     required this.id,
@@ -156,6 +221,7 @@ class EmployeeModel {
     this.bankAccountNumber,
     this.dutyShift,
     this.designationName,
+    this.image,
   });
 
   factory EmployeeModel.fromJson(Map<String, dynamic> json) {
@@ -164,7 +230,6 @@ class EmployeeModel {
       shift = DutyShiftModel.fromJson(json['duty_shift'] as Map<String, dynamic>);
     }
 
-    // Handle nested or direct bank mapping from response
     String? bName = json['bank_name']?.toString();
     if (json['bank'] != null && json['bank'] is Map) {
       bName = json['bank']['name']?.toString() ?? json['bank']['bank_name']?.toString();
@@ -188,6 +253,7 @@ class EmployeeModel {
       bankAccountNumber: json['bank_account_number']?.toString(),
       dutyShift: shift,
       designationName: desigName,
+      image: json['image']?.toString(),
     );
   }
 

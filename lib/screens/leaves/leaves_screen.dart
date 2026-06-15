@@ -21,9 +21,7 @@ class _LeavesScreenState extends State<LeavesScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
-    });
+    _loadData();
   }
 
   void _loadData() {

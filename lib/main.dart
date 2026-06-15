@@ -7,6 +7,7 @@ import 'providers/auth/auth_provider.dart';
 import 'providers/dashboard/dashboard_provider.dart';
 import 'providers/attendance/attendance_provider.dart';
 import 'providers/salary/salary_provider.dart';
+import 'providers/salary/salary_report_provider.dart';
 import 'providers/leaves/leave_provider.dart';
 import 'providers/leaves/short_leave_provider.dart';
 
@@ -14,6 +15,10 @@ import 'providers/leaves/short_leave_provider.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/login/login_screen.dart';
 import 'screens/home/main_navigation_screen.dart';
+import 'screens/employees/employees_screen.dart';
+import 'screens/attendance/absents_screen.dart';
+import 'screens/attendance/today_attendance_screen.dart';
+import 'screens/reports/salary_report_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,6 +37,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
         ChangeNotifierProvider(create: (_) => SalaryProvider()),
+        ChangeNotifierProvider(create: (_) => SalaryReportProvider()),
         ChangeNotifierProvider(create: (_) => LeaveProvider()),
         ChangeNotifierProvider(create: (_) => ShortLeaveProvider()),
       ],
@@ -77,6 +83,12 @@ class MyApp extends StatelessWidget {
           '/leaves': (context) => const MainNavigationScreen(initialIndex: 3),
           '/short-leaves': (context) => const MainNavigationScreen(initialIndex: 4),
           '/salary': (context) => const MainNavigationScreen(initialIndex: 5),
+          '/salary-reports': (context) => const SalaryReportScreen(),
+
+          // Details routes
+          '/employees-list': (context) => const EmployeesScreen(),
+          '/absents': (context) => const AbsentsScreen(),
+          '/today-attendance': (context) => const TodayAttendanceScreen(),
         },
       ),
     );

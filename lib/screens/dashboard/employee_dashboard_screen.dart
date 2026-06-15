@@ -22,9 +22,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
   void initState() {
     super.initState();
     _selectedMonth = DateTime.now();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadData();
-    });
+    _loadData();
   }
 
   void _loadData() {
