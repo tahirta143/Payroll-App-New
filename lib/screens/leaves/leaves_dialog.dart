@@ -452,6 +452,7 @@ class _LeavesDialogState extends State<LeavesDialog> {
     const tealColor = Color(0xFF007F70);
     final isEdit = widget.editRecord != null;
     final isEmployee = auth.user?.employeeId != null;
+    final isWideDialog = MediaQuery.of(context).size.width > 480;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -480,13 +481,28 @@ class _LeavesDialogState extends State<LeavesDialog> {
                           children: [
                             Text(
                               isEdit ? 'Edit Leave Application' : 'Create Employee Leave',
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: () => Navigator.pop(context),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isEdit && auth.hasPermission('can-delete-leaves')) ...[
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                    onPressed: _deleteRecord,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    tooltip: 'Delete Request',
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                                IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => Navigator.pop(context),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -529,40 +545,69 @@ class _LeavesDialogState extends State<LeavesDialog> {
                                         ],
                                       ),
                                       const SizedBox(height: 16),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _leaveIdController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'Leave ID *',
-                                                labelStyle: TextStyle(fontSize: 12),
-                                                hintText: 'Auto generating...',
+                                      if (isWideDialog)
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _leaveIdController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'Leave ID *',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                  hintText: 'Auto generating...',
+                                                ),
+                                                readOnly: true,
+                                                style: const TextStyle(fontSize: 13),
                                               ),
-                                              readOnly: true,
-                                              style: const TextStyle(fontSize: 13),
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _dateController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'Date *',
-                                                labelStyle: TextStyle(fontSize: 12),
-                                                suffixIcon: Icon(Icons.calendar_today, size: 16),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _dateController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'Date *',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                  suffixIcon: Icon(Icons.calendar_today, size: 16),
+                                                ),
+                                                readOnly: true,
+                                                onTap: () => _selectDate(context, _dateController),
+                                                style: const TextStyle(fontSize: 13),
+                                                validator: (val) {
+                                                  if (val == null || val.trim().isEmpty) return 'Date is required';
+                                                  return null;
+                                                },
                                               ),
-                                              readOnly: true,
-                                              onTap: () => _selectDate(context, _dateController),
-                                              style: const TextStyle(fontSize: 13),
-                                              validator: (val) {
-                                                if (val == null || val.trim().isEmpty) return 'Date is required';
-                                                return null;
-                                              },
                                             ),
+                                          ],
+                                        )
+                                      else ...[
+                                        TextFormField(
+                                          controller: _leaveIdController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Leave ID *',
+                                            labelStyle: TextStyle(fontSize: 12),
+                                            hintText: 'Auto generating...',
                                           ),
-                                        ],
-                                      ),
+                                          readOnly: true,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextFormField(
+                                          controller: _dateController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Date *',
+                                            labelStyle: TextStyle(fontSize: 12),
+                                            suffixIcon: Icon(Icons.calendar_today, size: 16),
+                                          ),
+                                          readOnly: true,
+                                          onTap: () => _selectDate(context, _dateController),
+                                          style: const TextStyle(fontSize: 13),
+                                          validator: (val) {
+                                            if (val == null || val.trim().isEmpty) return 'Date is required';
+                                            return null;
+                                          },
+                                        ),
+                                      ],
                                       const SizedBox(height: 16),
                                       if (isEmployee) ...[
                                         TextFormField(
@@ -629,33 +674,55 @@ class _LeavesDialogState extends State<LeavesDialog> {
                                         ),
                                         const SizedBox(height: 16),
                                       ],
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _codeController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'Code',
-                                                labelStyle: TextStyle(fontSize: 12),
+                                      if (isWideDialog)
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _codeController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'Code',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                ),
+                                                readOnly: true,
+                                                style: const TextStyle(fontSize: 13),
                                               ),
-                                              readOnly: true,
-                                              style: const TextStyle(fontSize: 13),
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _designationController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'Designation',
-                                                labelStyle: TextStyle(fontSize: 12),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _designationController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'Designation',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                ),
+                                                readOnly: true,
+                                                style: const TextStyle(fontSize: 13),
                                               ),
-                                              readOnly: true,
-                                              style: const TextStyle(fontSize: 13),
                                             ),
+                                          ],
+                                        )
+                                      else ...[
+                                        TextFormField(
+                                          controller: _codeController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Code',
+                                            labelStyle: TextStyle(fontSize: 12),
                                           ),
-                                        ],
-                                      ),
+                                          readOnly: true,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextFormField(
+                                          controller: _designationController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Designation',
+                                            labelStyle: TextStyle(fontSize: 12),
+                                          ),
+                                          readOnly: true,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -735,63 +802,113 @@ class _LeavesDialogState extends State<LeavesDialog> {
                                         validator: (val) => val == null ? 'Leave type is required' : null,
                                       ),
                                       const SizedBox(height: 16),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _fromDateController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'From *',
-                                                labelStyle: TextStyle(fontSize: 12),
-                                                suffixIcon: Icon(Icons.date_range, size: 16),
+                                      if (isWideDialog)
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _fromDateController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'From *',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                  suffixIcon: Icon(Icons.date_range, size: 16),
+                                                ),
+                                                readOnly: true,
+                                                onTap: () => _selectDate(context, _fromDateController, calcDays: true),
+                                                style: const TextStyle(fontSize: 13),
+                                                validator: (val) {
+                                                  if (val == null || val.trim().isEmpty) return 'Required';
+                                                  return null;
+                                                },
                                               ),
-                                              readOnly: true,
-                                              onTap: () => _selectDate(context, _fromDateController, calcDays: true),
-                                              style: const TextStyle(fontSize: 13),
-                                              validator: (val) {
-                                                if (val == null || val.trim().isEmpty) return 'Required';
-                                                return null;
-                                              },
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _toDateController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'To *',
-                                                labelStyle: TextStyle(fontSize: 12),
-                                                suffixIcon: Icon(Icons.date_range, size: 16),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _toDateController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'To *',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                  suffixIcon: Icon(Icons.date_range, size: 16),
+                                                ),
+                                                readOnly: true,
+                                                onTap: () => _selectDate(context, _toDateController, calcDays: true),
+                                                style: const TextStyle(fontSize: 13),
+                                                validator: (val) {
+                                                  if (val == null || val.trim().isEmpty) return 'Required';
+                                                  return null;
+                                                },
                                               ),
-                                              readOnly: true,
-                                              onTap: () => _selectDate(context, _toDateController, calcDays: true),
-                                              style: const TextStyle(fontSize: 13),
-                                              validator: (val) {
-                                                if (val == null || val.trim().isEmpty) return 'Required';
-                                                return null;
-                                              },
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _daysController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'Days *',
-                                                labelStyle: TextStyle(fontSize: 12),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _daysController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'Days *',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                ),
+                                                keyboardType: TextInputType.number,
+                                                style: const TextStyle(fontSize: 13),
+                                                validator: (val) {
+                                                  if (val == null || val.trim().isEmpty) return 'Required';
+                                                  final parsed = double.tryParse(val);
+                                                  if (parsed == null || parsed <= 0) return 'Invalid';
+                                                  return null;
+                                                },
                                               ),
-                                              keyboardType: TextInputType.number,
-                                              style: const TextStyle(fontSize: 13),
-                                              validator: (val) {
-                                                if (val == null || val.trim().isEmpty) return 'Required';
-                                                final parsed = double.tryParse(val);
-                                                if (parsed == null || parsed <= 0) return 'Invalid';
-                                                return null;
-                                              },
                                             ),
+                                          ],
+                                        )
+                                      else ...[
+                                        TextFormField(
+                                          controller: _fromDateController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'From *',
+                                            labelStyle: TextStyle(fontSize: 12),
+                                            suffixIcon: Icon(Icons.date_range, size: 16),
                                           ),
-                                        ],
-                                      ),
+                                          readOnly: true,
+                                          onTap: () => _selectDate(context, _fromDateController, calcDays: true),
+                                          style: const TextStyle(fontSize: 13),
+                                          validator: (val) {
+                                            if (val == null || val.trim().isEmpty) return 'Required';
+                                            return null;
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextFormField(
+                                          controller: _toDateController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'To *',
+                                            labelStyle: TextStyle(fontSize: 12),
+                                            suffixIcon: Icon(Icons.date_range, size: 16),
+                                          ),
+                                          readOnly: true,
+                                          onTap: () => _selectDate(context, _toDateController, calcDays: true),
+                                          style: const TextStyle(fontSize: 13),
+                                          validator: (val) {
+                                            if (val == null || val.trim().isEmpty) return 'Required';
+                                            return null;
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextFormField(
+                                          controller: _daysController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Days *',
+                                            labelStyle: TextStyle(fontSize: 12),
+                                          ),
+                                          keyboardType: TextInputType.number,
+                                          style: const TextStyle(fontSize: 13),
+                                          validator: (val) {
+                                            if (val == null || val.trim().isEmpty) return 'Required';
+                                            final parsed = double.tryParse(val);
+                                            if (parsed == null || parsed <= 0) return 'Invalid';
+                                            return null;
+                                          },
+                                        ),
+                                      ],
                                       const SizedBox(height: 16),
                                       TextFormField(
                                         controller: _reasonController,
@@ -816,15 +933,8 @@ class _LeavesDialogState extends State<LeavesDialog> {
                       Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            if (isEdit && auth.hasPermission('can-delete-leaves'))
-                              TextButton.icon(
-                                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                onPressed: _deleteRecord,
-                                icon: const Icon(Icons.delete_outline, size: 18),
-                                label: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
-                              ),
-                            const Spacer(),
                             TextButton(
                               onPressed: () => Navigator.pop(context),
                               child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),

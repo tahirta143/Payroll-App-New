@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
+import '../../providers/auth/auth_provider.dart';
 import '../../providers/salary/salary_report_provider.dart';
 import '../../models/attendance/attendance_model.dart';
 import '../../models/salary/salary_report_model.dart';
@@ -23,12 +24,36 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> with SingleTick
   EmployeeModel? _selectedEmpFilter;
   bool _hasSearched = false;
 
+  bool _showSheet = false;
+  bool _showSlip = false;
+  int _tabCount = 2;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final isEmployee = auth.user?.employeeId != null;
+    _showSheet = auth.hasPermission('can-view-salary-sheet-report');
+    _showSlip = auth.hasPermission('can-view-salary-slip-report') || isEmployee;
+
+    if (_showSheet && _showSlip) {
+      _tabCount = 2;
+    } else {
+      _tabCount = 1;
+    }
+
+    _tabController = TabController(length: _tabCount, vsync: this);
     final now = DateTime.now();
     _selectedMonth = DateFormat('yyyy-MM').format(now);
+
+    if (isEmployee) {
+      _selectedEmpFilter = EmployeeModel(
+        id: auth.user!.employeeId!,
+        name: auth.user!.name.isNotEmpty ? auth.user!.name : auth.user!.username,
+        empId: auth.user!.username,
+        designationName: auth.user!.roleLabel,
+      );
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadMetadata();
@@ -49,7 +74,17 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> with SingleTick
     super.dispose();
   }
 
+  bool _isCurrentlySheet() {
+    if (_tabCount == 2) {
+      return _tabController.index == 0;
+    }
+    return _showSheet;
+  }
+
   void _loadMetadata() {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.user?.employeeId != null) return;
+
     final provider = Provider.of<SalaryReportProvider>(context, listen: false);
     provider.fetchDepartments();
     provider.fetchEmployees();
@@ -57,13 +92,17 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> with SingleTick
 
   void _generateReport() {
     final provider = Provider.of<SalaryReportProvider>(context, listen: false);
-    if (_tabController.index == 0) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final isEmployee = auth.user?.employeeId != null;
+
+    if (_isCurrentlySheet()) {
       provider.fetchMonthlySalarySheet(
         month: _selectedMonth,
         departmentId: _selectedDeptFilter?.id,
       );
     } else {
-      if (_selectedEmpFilter == null) {
+      final empId = isEmployee ? auth.user!.employeeId! : _selectedEmpFilter?.id;
+      if (empId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please select an employee to view salary slip'),
@@ -74,7 +113,7 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> with SingleTick
       }
       provider.fetchSalarySlip(
         month: _selectedMonth,
-        employeeId: _selectedEmpFilter!.id,
+        employeeId: empId,
       );
     }
     setState(() {
@@ -167,6 +206,8 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<SalaryReportProvider>(context);
+    final auth = Provider.of<AuthProvider>(context);
+    final isEmployee = auth.user?.employeeId != null;
     const tealColor = Color(0xFF007F70);
 
     return Scaffold(
@@ -185,21 +226,25 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> with SingleTick
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        title: const Text(
-          'Salary Reports',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+        title: Text(
+          _tabCount == 2
+              ? 'Salary Reports'
+              : (_showSheet ? 'Salary Sheet Report' : 'Salary Slip'),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(icon: Icon(Icons.table_chart_outlined), text: 'Salary Sheet'),
-            Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Salary Slip'),
-          ],
-        ),
+        bottom: _tabCount == 2
+            ? TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.white,
+                indicatorWeight: 3,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                tabs: const [
+                  Tab(icon: Icon(Icons.table_chart_outlined), text: 'Salary Sheet'),
+                  Tab(icon: Icon(Icons.receipt_long_outlined), text: 'Salary Slip'),
+                ],
+              )
+            : null,
       ),
       body: Column(
         children: [
@@ -239,29 +284,31 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> with SingleTick
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      // Conditional filter (Dept or Employee)
-                      Expanded(
-                        child: _tabController.index == 0
-                            ? _buildFilterDropdown<DepartmentModel>(
-                                value: _selectedDeptFilter,
-                                hint: 'Department',
-                                items: provider.departments,
-                                labelBuilder: (d) => d.name,
-                                onChanged: (val) {
-                                  setState(() => _selectedDeptFilter = val);
-                                },
-                              )
-                            : _buildFilterDropdown<EmployeeModel>(
-                                value: _selectedEmpFilter,
-                                hint: 'Employee',
-                                items: provider.employees,
-                                labelBuilder: (e) => e.name,
-                                onChanged: (val) {
-                                  setState(() => _selectedEmpFilter = val);
-                                },
-                              ),
-                      ),
+                      if (_isCurrentlySheet() || !isEmployee) ...[
+                        const SizedBox(width: 12),
+                        // Conditional filter (Dept or Employee)
+                        Expanded(
+                          child: _isCurrentlySheet()
+                              ? _buildFilterDropdown<DepartmentModel>(
+                                  value: _selectedDeptFilter,
+                                  hint: 'Department',
+                                  items: provider.departments,
+                                  labelBuilder: (d) => d.name,
+                                  onChanged: (val) {
+                                    setState(() => _selectedDeptFilter = val);
+                                  },
+                                )
+                              : _buildFilterDropdown<EmployeeModel>(
+                                  value: _selectedEmpFilter,
+                                  hint: 'Employee',
+                                  items: provider.employees,
+                                  labelBuilder: (e) => e.name,
+                                  onChanged: (val) {
+                                    setState(() => _selectedEmpFilter = val);
+                                  },
+                                ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -316,7 +363,7 @@ class _SalaryReportScreenState extends State<SalaryReportScreen> with SingleTick
                               ),
                             ),
                           )
-                        : _tabController.index == 0
+                        : _isCurrentlySheet()
                             ? _buildSalarySheetView(provider.salarySheet)
                             : _buildSalarySlipView(provider.salarySlip),
           ),

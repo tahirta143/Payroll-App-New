@@ -310,6 +310,7 @@ class _ShortLeavesDialogState extends State<ShortLeavesDialog> {
     const tealColor = Color(0xFF007F70);
     final isEdit = widget.editRecord != null;
     final isEmployee = auth.user?.employeeId != null;
+    final isWideDialog = MediaQuery.of(context).size.width > 480;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -340,11 +341,26 @@ class _ShortLeavesDialogState extends State<ShortLeavesDialog> {
                               isEdit ? 'Edit Short Leave' : 'Create Short Leave',
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: () => Navigator.pop(context),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isEdit && auth.hasPermission('can-delete-short-leaves')) ...[
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                    onPressed: _deleteRecord,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    tooltip: 'Delete Short Leave',
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                                IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => Navigator.pop(context),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -469,39 +485,67 @@ class _ShortLeavesDialogState extends State<ShortLeavesDialog> {
                                         ],
                                       ),
                                       const SizedBox(height: 16),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _fromTimeController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'From Time *',
-                                                labelStyle: TextStyle(fontSize: 12),
-                                                suffixIcon: Icon(Icons.access_time, size: 16),
+                                      if (isWideDialog)
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _fromTimeController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'From Time *',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                  suffixIcon: Icon(Icons.access_time, size: 16),
+                                                ),
+                                                readOnly: true,
+                                                onTap: () => _selectTime(context, true),
+                                                style: const TextStyle(fontSize: 13),
+                                                validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                                               ),
-                                              readOnly: true,
-                                              onTap: () => _selectTime(context, true),
-                                              style: const TextStyle(fontSize: 13),
-                                              validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                                             ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: TextFormField(
-                                              controller: _toTimeController,
-                                              decoration: const InputDecoration(
-                                                labelText: 'To Time *',
-                                                labelStyle: TextStyle(fontSize: 12),
-                                                suffixIcon: Icon(Icons.access_time, size: 16),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: TextFormField(
+                                                controller: _toTimeController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'To Time *',
+                                                  labelStyle: TextStyle(fontSize: 12),
+                                                  suffixIcon: Icon(Icons.access_time, size: 16),
+                                                ),
+                                                readOnly: true,
+                                                onTap: () => _selectTime(context, false),
+                                                style: const TextStyle(fontSize: 13),
+                                                validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                                               ),
-                                              readOnly: true,
-                                              onTap: () => _selectTime(context, false),
-                                              style: const TextStyle(fontSize: 13),
-                                              validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
                                             ),
+                                          ],
+                                        )
+                                      else ...[
+                                        TextFormField(
+                                          controller: _fromTimeController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'From Time *',
+                                            labelStyle: TextStyle(fontSize: 12),
+                                            suffixIcon: Icon(Icons.access_time, size: 16),
                                           ),
-                                        ],
-                                      ),
+                                          readOnly: true,
+                                          onTap: () => _selectTime(context, true),
+                                          style: const TextStyle(fontSize: 13),
+                                          validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        TextFormField(
+                                          controller: _toTimeController,
+                                          decoration: const InputDecoration(
+                                            labelText: 'To Time *',
+                                            labelStyle: TextStyle(fontSize: 12),
+                                            suffixIcon: Icon(Icons.access_time, size: 16),
+                                          ),
+                                          readOnly: true,
+                                          onTap: () => _selectTime(context, false),
+                                          style: const TextStyle(fontSize: 13),
+                                          validator: (val) => (val == null || val.trim().isEmpty) ? 'Required' : null,
+                                        ),
+                                      ],
                                       if (_fromTime != null && _toTime != null) ...[
                                         const SizedBox(height: 16),
                                         Container(
@@ -751,15 +795,8 @@ class _ShortLeavesDialogState extends State<ShortLeavesDialog> {
                       Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            if (isEdit && auth.hasPermission('can-delete-short-leaves'))
-                              TextButton.icon(
-                                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                                onPressed: _deleteRecord,
-                                icon: const Icon(Icons.delete_outline, size: 18),
-                                label: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
-                              ),
-                            const Spacer(),
                             TextButton(
                               onPressed: () => Navigator.pop(context),
                               child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),

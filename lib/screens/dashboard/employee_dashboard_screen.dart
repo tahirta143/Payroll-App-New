@@ -293,40 +293,54 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                     const SizedBox(height: 12),
 
                     if (summary != null) ...[
-                      // Stats List
-                      _buildStatCard(
-                        label: 'Present Days',
-                        value: summary.presentCount,
-                        icon: Icons.check_circle_outline,
-                        color: Colors.teal,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildStatCard(
-                        label: 'Late Clock-ins',
-                        value: summary.lateCount,
-                        icon: Icons.timer_outlined,
-                        color: Colors.amber[800]!,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildStatCard(
-                        label: 'Short Leaves',
-                        value: summary.shortLeaveCount,
-                        icon: Icons.assignment_outlined,
-                        color: Colors.purple[700]!,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildStatCard(
-                        label: 'Approved Leaves',
-                        value: summary.leaveCount,
-                        icon: Icons.calendar_today_outlined,
-                        color: Colors.indigo,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildStatCard(
-                        label: 'Absent Days',
-                        value: summary.absentCount,
-                        icon: Icons.remove_circle_outline,
-                        color: Colors.red[600]!,
+                      // Responsive Stats Grid
+                      GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: MediaQuery.of(context).size.width > 900
+                            ? 3
+                            : MediaQuery.of(context).size.width > 600
+                                ? 2
+                                : 1,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: MediaQuery.of(context).size.width > 900
+                            ? 3.2
+                            : MediaQuery.of(context).size.width > 600
+                                ? 3.0
+                                : 4.2,
+                        children: [
+                          _buildStatCard(
+                            label: 'Present Days',
+                            value: summary.presentCount,
+                            icon: Icons.check_circle_outline,
+                            color: Colors.teal,
+                          ),
+                          _buildStatCard(
+                            label: 'Late Clock-ins',
+                            value: summary.lateCount,
+                            icon: Icons.timer_outlined,
+                            color: Colors.amber[800]!,
+                          ),
+                          _buildStatCard(
+                            label: 'Short Leaves',
+                            value: summary.shortLeaveCount,
+                            icon: Icons.assignment_outlined,
+                            color: Colors.purple[700]!,
+                          ),
+                          _buildStatCard(
+                            label: 'Approved Leaves',
+                            value: summary.leaveCount,
+                            icon: Icons.calendar_today_outlined,
+                            color: Colors.indigo,
+                          ),
+                          _buildStatCard(
+                            label: 'Absent Days',
+                            value: summary.absentCount,
+                            icon: Icons.remove_circle_outline,
+                            color: Colors.red[600]!,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
 

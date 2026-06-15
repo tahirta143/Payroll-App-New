@@ -94,7 +94,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ));
     }
 
-    if (auth.hasPermission('can-view-salary') || isEmployee) {
+    if (auth.hasPermission('can-view-salary-sheet-report') ||
+        auth.hasPermission('can-view-salary-slip-report') ||
+        isEmployee) {
       modules.add(_HomeGridItem(
         icon: Icons.assessment_outlined,
         title: 'Salary Reports',
@@ -117,7 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Spacer to push content below the fixed header and stat cards
-                  SizedBox(height: size.height * 0.42 + 40),
+                  SizedBox(
+                    height: MediaQuery.of(context).orientation == Orientation.landscape
+                        ? 260.0
+                        : size.height * 0.42 + 40,
+                  ),
 
                   // ── Modules Header ──
                   Padding(
@@ -154,11 +160,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       shrinkWrap: true,
                       padding: EdgeInsets.zero,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: size.width > 900
+                            ? 4
+                            : size.width > 600
+                                ? 3
+                                : 2,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
-                        childAspectRatio: 1.22,
+                        childAspectRatio: size.width > 900
+                            ? 1.5
+                            : size.width > 600
+                                ? 1.35
+                                : 1.22,
                       ),
                       itemCount: modules.length,
                       itemBuilder: (context, index) {
@@ -187,7 +201,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeroHeader(BuildContext context, Size size, String user, String role, int modulesCount, Color tealColor) {
     final tp = MediaQuery.of(context).padding.top;
-    final headerHeight = size.height * 0.42;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final headerHeight = isLandscape ? 220.0 : size.height * 0.42;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -330,8 +345,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(width: 10),
               SizedBox(
-                width: 150,
-                height: 150,
+                width: 155,
+                height: 155,
                 child: AnalogClock(
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),

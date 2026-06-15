@@ -461,10 +461,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       GridView.count(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
+                        crossAxisCount: MediaQuery.of(context).size.width > 900
+                            ? 4
+                            : MediaQuery.of(context).size.width > 600
+                                ? 3
+                                : 2,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
-                        childAspectRatio: 1.5,
+                        childAspectRatio: MediaQuery.of(context).size.width > 900
+                            ? 1.8
+                            : MediaQuery.of(context).size.width > 600
+                                ? 1.6
+                                : 1.5,
                         children: [
                           _buildKpiCard(
                             label: 'Total Employees',
@@ -586,68 +594,147 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Monthly Attendance Report Chart Card
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 15,
-                              spreadRadius: 2,
-                              offset: const Offset(0, 4),
+                      // Tablet/Landscape Responsive layout for Chart & Logs
+                      if (MediaQuery.of(context).size.width > 900) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 15,
+                                      spreadRadius: 2,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            'Monthly Trend',
+                                            style: TextStyle(
+                                              fontFamily: 'Poppins',
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF1E293B),
+                                            ),
+                                          ),
+                                          Row(
+                                            children: [
+                                              _buildLegendDot(Colors.teal, 'Present'),
+                                              const SizedBox(width: 8),
+                                              _buildLegendDot(Colors.amber[800]!, 'Leaves'),
+                                              const SizedBox(width: 8),
+                                              _buildLegendDot(Colors.red[600]!, 'Absent'),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 24),
+                                      _buildTrendChart(overview.trend),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            const SizedBox(width: 20),
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Monthly Trend',
+                                    'Recent Clock-ins',
                                     style: TextStyle(
                                       fontFamily: 'Poppins',
-                                      fontSize: 14,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF1E293B),
                                     ),
                                   ),
-                                  Row(
-                                    children: [
-                                      _buildLegendDot(Colors.teal, 'Present'),
-                                      const SizedBox(width: 8),
-                                      _buildLegendDot(Colors.amber[800]!, 'Leaves'),
-                                      const SizedBox(width: 8),
-                                      _buildLegendDot(Colors.red[600]!, 'Absent'),
-                                    ],
-                                  ),
+                                  const SizedBox(height: 12),
+                                  _buildRecentLogs(overview.attendance),
                                 ],
                               ),
-                              const SizedBox(height: 24),
-                              _buildTrendChart(overview.trend),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        // Mobile Layout - Stacking
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 15,
+                                spreadRadius: 2,
+                                offset: const Offset(0, 4),
+                              ),
                             ],
                           ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Monthly Trend',
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        _buildLegendDot(Colors.teal, 'Present'),
+                                        const SizedBox(width: 8),
+                                        _buildLegendDot(Colors.amber[800]!, 'Leaves'),
+                                        const SizedBox(width: 8),
+                                        _buildLegendDot(Colors.red[600]!, 'Absent'),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 24),
+                                _buildTrendChart(overview.trend),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                      // Recent Attendance Card
-                      const Text(
-                        'Recent Clock-ins',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
+                        // Recent Attendance Card
+                        const Text(
+                          'Recent Clock-ins',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildRecentLogs(overview.attendance),
+                        const SizedBox(height: 12),
+                        _buildRecentLogs(overview.attendance),
+                      ],
                     ],
                   ],
                 ),

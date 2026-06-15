@@ -227,7 +227,9 @@ class AppDrawer extends StatelessWidget {
                     onTap: () => navigateToTab('/salary'),
                   ),
                 // Salary Reports Screen
-                if (authProvider.hasPermission('can-view-salary') || isEmployee)
+                if (authProvider.hasPermission('can-view-salary-sheet-report') ||
+                    authProvider.hasPermission('can-view-salary-slip-report') ||
+                    isEmployee)
                   _buildMenuItem(
                     context: context,
                     icon: Icons.assessment_outlined,

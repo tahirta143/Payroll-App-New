@@ -97,7 +97,7 @@ class _LeavesScreenState extends State<LeavesScreen> {
           ),
         ),
         title: Text(
-          isEmployee ? 'My Leaves' : 'Leaves Log Registry',
+          isEmployee ? 'My Leaves' : 'Leaves',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),

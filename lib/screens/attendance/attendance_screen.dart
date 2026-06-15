@@ -95,8 +95,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final response = await ApiService().get('/api/datewise-attendance?date=$_datewiseSelectedDate');
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
+        var records = decoded['records'] as List? ?? [];
+        
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        if (auth.user?.employeeId != null) {
+          records = records.where((rec) {
+            final emp = rec['employee'] ?? {};
+            return emp['id'] == auth.user!.employeeId;
+          }).toList();
+        }
+        
         setState(() {
-          _datewiseRecords = decoded['records'] as List? ?? [];
+          _datewiseRecords = records;
         });
       }
     } catch (e) {
@@ -261,30 +271,49 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Map<String, dynamic> _getStatusData(dynamic log) {
-    String status = log is AttendanceModel ? (log.isPresent ? 'Present' : 'Absent') : (log['status']?.toString() ?? 'Present');
-    
-    if (status.toLowerCase() == 'holiday') {
-      return {'label': 'Holiday', 'color': Colors.purple, 'subtitle': 'Weekly Off'};
+    String? status;
+    if (log is AttendanceModel) {
+      status = log.isPresent ? 'present' : 'absent';
+    } else if (log is Map) {
+      status = log['status']?.toString();
     }
-    if (status.toLowerCase() == 'absent') {
+
+    if (status == null || status.isEmpty || status == '-') {
+      return {'label': '-', 'color': Colors.grey, 'subtitle': null};
+    }
+
+    final lowerStatus = status.toLowerCase();
+
+    if (lowerStatus == 'none') {
+      return {'label': 'None', 'color': Colors.grey, 'subtitle': null};
+    }
+
+    if (lowerStatus == 'holiday') {
+      return {'label': 'Holiday', 'color': Colors.amber[800]!, 'subtitle': 'Weekly Off'};
+    }
+    if (lowerStatus == 'absent') {
       return {'label': 'Absent', 'color': Colors.red, 'subtitle': null};
     }
-    if (status.toLowerCase() == 'leave') {
+    if (lowerStatus == 'leave') {
       return {'label': 'Leave', 'color': Colors.blue, 'subtitle': null};
     }
-    if (status.toLowerCase() == 'on_duty') {
+    if (lowerStatus == 'cpl') {
+      return {'label': 'CPL', 'color': Colors.cyan[700]!, 'subtitle': null};
+    }
+    if (lowerStatus == 'on_duty') {
       return {'label': 'On Duty', 'color': Colors.cyan, 'subtitle': null};
     }
 
+    // Default or 'present'
     int lateMins = 0;
     if (log is AttendanceModel) {
       lateMins = log.lateMinutes;
-    } else {
+    } else if (log is Map) {
       lateMins = double.tryParse(log['late_minutes']?.toString() ?? '0')?.toInt() ?? 0;
     }
 
     if (lateMins > 0) {
-      return {'label': 'Late', 'color': Colors.orange, 'subtitle': 'Late by ${lateMins}m'};
+      return {'label': 'Late', 'color': Colors.orange, 'subtitle': '${lateMins}m'};
     }
 
     return {'label': 'Present', 'color': const Color(0xFF4CAF50), 'subtitle': null};
@@ -293,13 +322,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Widget _buildTableHeaderCell(String text, double width, {TextAlign align = TextAlign.start}) {
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       child: Text(
         text,
         textAlign: align,
         style: const TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 11,
           color: Color(0xFF1E293B),
         ),
       ),
@@ -413,6 +442,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     const tealColor = Color(0xFF007F70);
     final isEmployee = auth.user?.employeeId != null;
 
+    final isWide = MediaQuery.of(context).size.width > 600;
+
     final filteredLogs = provider.attendanceList.where((log) {
       final empName = log.employeeName?.toLowerCase() ?? '';
       final query = _searchQuery.toLowerCase();
@@ -446,11 +477,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 16.0, left: 16.0, right: 16.0),
             child: Container(
-              height: 46,
-              padding: const EdgeInsets.all(4),
+              height: 38,
+              padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
@@ -488,46 +519,83 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       onChanged: (val) => setState(() => _searchQuery = val),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildFilterDropdown<DepartmentModel>(
-                            value: _selectedDeptFilter,
-                            hint: 'Dept',
-                            items: provider.departments,
-                            labelBuilder: (d) => d.name,
-                            onChanged: (val) {
-                              setState(() => _selectedDeptFilter = val);
-                              _fetchAttendanceLogs();
-                            },
+                    if (isWide)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildFilterDropdown<DepartmentModel>(
+                              value: _selectedDeptFilter,
+                              hint: 'Dept',
+                              items: provider.departments,
+                              labelBuilder: (d) => d.name,
+                              onChanged: (val) {
+                                setState(() => _selectedDeptFilter = val);
+                                _fetchAttendanceLogs();
+                              },
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildFilterDropdown<EmployeeModel>(
-                            value: _selectedEmpFilter,
-                            hint: 'Employee',
-                            items: provider.filterEmployees,
-                            labelBuilder: (e) => e.name,
-                            onChanged: (val) {
-                              setState(() => _selectedEmpFilter = val);
-                              _fetchAttendanceLogs();
-                            },
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildFilterDropdown<EmployeeModel>(
+                              value: _selectedEmpFilter,
+                              hint: 'Employee',
+                              items: provider.filterEmployees,
+                              labelBuilder: (e) => e.name,
+                              onChanged: (val) {
+                                setState(() => _selectedEmpFilter = val);
+                                _fetchAttendanceLogs();
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    _buildFilterDropdown<DutyShiftModel>(
-                      value: _selectedShiftFilter,
-                      hint: 'Duty Shift',
-                      items: provider.dutyShifts,
-                      labelBuilder: (s) => s.name,
-                      onChanged: (val) {
-                        setState(() => _selectedShiftFilter = val);
-                        _fetchAttendanceLogs();
-                      },
-                    ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildFilterDropdown<DutyShiftModel>(
+                              value: _selectedShiftFilter,
+                              hint: 'Duty Shift',
+                              items: provider.dutyShifts,
+                              labelBuilder: (s) => s.name,
+                              onChanged: (val) {
+                                setState(() => _selectedShiftFilter = val);
+                                _fetchAttendanceLogs();
+                              },
+                            ),
+                          ),
+                        ],
+                      )
+                    else ...[
+                      _buildFilterDropdown<DepartmentModel>(
+                        value: _selectedDeptFilter,
+                        hint: 'Dept',
+                        items: provider.departments,
+                        labelBuilder: (d) => d.name,
+                        onChanged: (val) {
+                          setState(() => _selectedDeptFilter = val);
+                          _fetchAttendanceLogs();
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFilterDropdown<EmployeeModel>(
+                        value: _selectedEmpFilter,
+                        hint: 'Employee',
+                        items: provider.filterEmployees,
+                        labelBuilder: (e) => e.name,
+                        onChanged: (val) {
+                          setState(() => _selectedEmpFilter = val);
+                          _fetchAttendanceLogs();
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildFilterDropdown<DutyShiftModel>(
+                        value: _selectedShiftFilter,
+                        hint: 'Duty Shift',
+                        items: provider.dutyShifts,
+                        labelBuilder: (s) => s.name,
+                        onChanged: (val) {
+                          setState(() => _selectedShiftFilter = val);
+                          _fetchAttendanceLogs();
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -574,37 +642,66 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 child: Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _selectMonth(context),
-                            icon: const Icon(Icons.calendar_month, color: tealColor),
-                            label: Text('Month: $_monthlySelectedMonth', style: const TextStyle(color: Colors.black87)),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide(color: Colors.grey[300]!),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    if (isWide)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _selectMonth(context),
+                              icon: const Icon(Icons.calendar_month, color: tealColor),
+                              label: Text('Month: $_monthlySelectedMonth', style: const TextStyle(color: Colors.black87)),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                side: BorderSide(color: Colors.grey[300]!),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
                             ),
+                          ),
+                          if (!isEmployee) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildFilterDropdown<EmployeeModel>(
+                                value: _selectedEmpFilter,
+                                hint: 'Employee',
+                                items: provider.filterEmployees,
+                                labelBuilder: (e) => e.name,
+                                onChanged: (val) {
+                                  setState(() => _selectedEmpFilter = val);
+                                  _fetchMonthlyReport();
+                                },
+                              ),
+                            ),
+                          ],
+                        ],
+                      )
+                    else ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _selectMonth(context),
+                          icon: const Icon(Icons.calendar_month, color: tealColor),
+                          label: Text('Month: $_monthlySelectedMonth', style: const TextStyle(color: Colors.black87)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: Colors.grey[300]!),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                         ),
-                        if (!isEmployee) ...[
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildFilterDropdown<EmployeeModel>(
-                              value: _selectedEmpFilter,
-                              hint: 'Employee',
-                              items: provider.filterEmployees,
-                              labelBuilder: (e) => e.name,
-                              onChanged: (val) {
-                                setState(() => _selectedEmpFilter = val);
-                                _fetchMonthlyReport();
-                              },
-                            ),
-                          ),
-                        ],
+                      ),
+                      if (!isEmployee) ...[
+                        const SizedBox(height: 8),
+                        _buildFilterDropdown<EmployeeModel>(
+                          value: _selectedEmpFilter,
+                          hint: 'Employee',
+                          items: provider.filterEmployees,
+                          labelBuilder: (e) => e.name,
+                          onChanged: (val) {
+                            setState(() => _selectedEmpFilter = val);
+                            _fetchMonthlyReport();
+                          },
+                        ),
                       ],
-                    ),
+                    ],
                     if (isEmployee) ...[
                       const SizedBox(height: 8),
                       SizedBox(
@@ -658,23 +755,24 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           }
         },
         child: Container(
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             boxShadow: isSelected
-                ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
+                ? [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4, offset: const Offset(0, 1.5))]
                 : [],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: isSelected ? tealColor : Colors.grey[600]),
-              const SizedBox(width: 6),
+              Icon(icon, size: 14, color: isSelected ? tealColor : Colors.grey[600]),
+              const SizedBox(width: 4),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected ? tealColor : Colors.grey[700],
                 ),
               ),
@@ -702,12 +800,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildLogsTable(List<AttendanceModel> logs) {
-    const double srWidth = 60;
-    const double dateWidth = 160;
-    const double timeWidth = 110;
-    const double statusWidth = 130;
-    const double actionWidth = 70;
-    final double totalWidth = srWidth + dateWidth + (timeWidth * 2) + statusWidth + actionWidth;
+    const double srWidth = 50;
+    const double dateWidth = 100;
+    const double timeWidth = 70;
+    const double statusWidth = 80;
+    // const double actionWidth = 40;
+    final double totalWidth = srWidth + dateWidth + (timeWidth * 2) + statusWidth ;
 
     if (logs.isEmpty) {
       return const Center(child: Text('No attendance logs found.'));
@@ -731,7 +829,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   _buildTableHeaderCell('Time In', timeWidth, align: TextAlign.center),
                   _buildTableHeaderCell('Time Out', timeWidth, align: TextAlign.center),
                   _buildTableHeaderCell('Status', statusWidth, align: TextAlign.center),
-                  _buildTableHeaderCell('Actions', actionWidth, align: TextAlign.center),
+                  // _buildTableHeaderCell('Actions', actionWidth, align: TextAlign.center),
                 ],
               ),
             ),
@@ -753,98 +851,99 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       children: [
                         Container(
                           width: srWidth,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text('${index + 1}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text('${index + 1}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                         ),
                         Container(
                           width: dateWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_formatDisplayDate(log.date), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-                              const SizedBox(height: 2),
-                              Text(log.employeeName ?? '', style: TextStyle(fontSize: 10, color: Colors.grey[600], fontStyle: FontStyle.italic)),
+                              Text(_formatDisplayDate(log.date), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 1),
+                              Text(log.employeeName ?? '', style: TextStyle(fontSize: 9, color: Colors.grey[600], fontStyle: FontStyle.italic)),
                             ],
                           ),
                         ),
                         Container(
                           width: timeWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                               decoration: BoxDecoration(
                                 color: !isHoliday && log.isPresent ? Colors.green.withAlpha(20) : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 !isHoliday ? _formatTime(log.timeIn) : '--:--',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: !isHoliday && log.isPresent ? Colors.green[700] : Colors.grey[600]),
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: !isHoliday && log.isPresent ? Colors.green[700] : Colors.grey[600]),
                               ),
                             ),
                           ),
                         ),
                         Container(
                           width: timeWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: !isHoliday && log.timeOut != null && log.timeOut != '--:--' ? Colors.blue.withAlpha(20) : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 !isHoliday ? _formatTime(log.timeOut) : '--:--',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: !isHoliday && log.timeOut != null && log.timeOut != '--:--' ? Colors.blue[700] : Colors.grey[600]),
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: !isHoliday && log.timeOut != null && log.timeOut != '--:--' ? Colors.blue[700] : Colors.grey[600]),
                               ),
                             ),
                           ),
                         ),
                         Container(
                           width: statusWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 17),
                           child: Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: (status['color'] as Color).withAlpha(25),
-                                borderRadius: BorderRadius.circular(8),
+                                color: (status['color'] as Color).withAlpha(20),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               child: Column(
                                 children: [
                                   Text(
                                     status['label'],
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: status['color']),
+                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: status['color']),
+                                    textAlign: TextAlign.center,
                                   ),
                                   if (status['subtitle'] != null) ...[
                                     const SizedBox(height: 1),
-                                    Text(status['subtitle'], style: TextStyle(fontSize: 8, color: (status['color'] as Color).withAlpha(180))),
+                                    Text(status['subtitle'], style: TextStyle(fontSize: 7.5, color: (status['color'] as Color).withAlpha(180)), textAlign: TextAlign.center),
                                   ],
                                 ],
                               ),
                             ),
                           ),
                         ),
-                        Container(
-                          width: actionWidth,
-                          child: Center(
-                            child: PopupMenuButton<String>(
-                              onSelected: (val) {
-                                if (val == 'edit') _openAddEditDialog(log);
-                                if (val == 'delete') _handleDelete(log.id);
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_outlined, size: 20), title: Text('Edit', style: TextStyle(fontSize: 13)))),
-                                const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline, size: 20, color: Colors.red), title: Text('Delete', style: TextStyle(fontSize: 13, color: Colors.red)))),
-                              ],
-                              icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
-                              padding: EdgeInsets.zero,
-                            ),
-                          ),
-                        ),
+                        // Container(
+                        //   width: actionWidth,
+                        //   child: Center(
+                        //     child: PopupMenuButton<String>(
+                        //       onSelected: (val) {
+                        //         if (val == 'edit') _openAddEditDialog(log);
+                        //         if (val == 'delete') _handleDelete(log.id);
+                        //       },
+                        //       itemBuilder: (context) => [
+                        //         const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_outlined, size: 20), title: Text('Edit', style: TextStyle(fontSize: 13)))),
+                        //         const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_outline, size: 20, color: Colors.red), title: Text('Delete', style: TextStyle(fontSize: 13, color: Colors.red)))),
+                        //       ],
+                        //       icon: const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                        //       padding: EdgeInsets.zero,
+                        //     ),
+                        //   ),
+                        // ),
                       ],
                     ),
                   );
@@ -858,12 +957,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildDatewiseTable() {
-    const double srWidth = 60;
-    const double empWidth = 160;
-    const double deptWidth = 120;
-    const double timeWidth = 110;
-    const double statusWidth = 130;
-    final double totalWidth = srWidth + empWidth + deptWidth + (timeWidth * 2) + statusWidth;
+    const double srWidth = 50;
+    const double dateWidth = 100;
+    const double timeWidth = 70;
+    const double statusWidth = 80;
+    final double totalWidth = srWidth + dateWidth + (timeWidth * 2) + statusWidth;
 
     if (_datewiseRecords.isEmpty) {
       return const Center(child: Text('No datewise reports generated. Select date above.'));
@@ -883,10 +981,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               child: Row(
                 children: [
                   _buildTableHeaderCell('Sr.No', srWidth, align: TextAlign.center),
-                  _buildTableHeaderCell('Employee', empWidth),
-                  _buildTableHeaderCell('Department', deptWidth),
-                  _buildTableHeaderCell('Att. In', timeWidth, align: TextAlign.center),
-                  _buildTableHeaderCell('Att. Out', timeWidth, align: TextAlign.center),
+                  _buildTableHeaderCell('Date', dateWidth),
+                  _buildTableHeaderCell('Time In', timeWidth, align: TextAlign.center),
+                  _buildTableHeaderCell('Time Out', timeWidth, align: TextAlign.center),
                   _buildTableHeaderCell('Status', statusWidth, align: TextAlign.center),
                 ],
               ),
@@ -898,9 +995,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 itemBuilder: (context, index) {
                   final rec = _datewiseRecords[index];
                   final emp = rec['employee'] ?? {};
-                  final dept = rec['department'] ?? {};
                   final status = _getStatusData(rec);
-                  final isHoliday = status['label'] == 'Holiday';
+                  final bool isHoliday = status['label'] == 'Holiday';
 
                   return Container(
                     decoration: BoxDecoration(
@@ -911,75 +1007,78 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       children: [
                         Container(
                           width: srWidth,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text('${index + 1}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text('${index + 1}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                         ),
                         Container(
-                          width: empWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          width: dateWidth,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(emp['name'] ?? '-', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 2),
-                              Text('ID: ${emp['emp_id'] ?? '-'}', style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                              Text(_formatDisplayDate(rec['date'] ?? _datewiseSelectedDate), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 1),
+                              Text(emp['name'] ?? '', style: TextStyle(fontSize: 9, color: Colors.grey[600], fontStyle: FontStyle.italic)),
                             ],
                           ),
                         ),
                         Container(
-                          width: deptWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(dept['name'] ?? '-', style: const TextStyle(fontSize: 12)),
-                        ),
-                        Container(
                           width: timeWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                               decoration: BoxDecoration(
                                 color: !isHoliday && rec['time_in'] != null ? Colors.green.withAlpha(20) : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 !isHoliday ? _formatTime(rec['time_in']) : '--:--',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: !isHoliday && rec['time_in'] != null ? Colors.green[700] : Colors.grey[600]),
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: !isHoliday && rec['time_in'] != null ? Colors.green[700] : Colors.grey[600]),
                               ),
                             ),
                           ),
                         ),
                         Container(
                           width: timeWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: !isHoliday && rec['time_out'] != null ? Colors.blue.withAlpha(20) : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 !isHoliday ? _formatTime(rec['time_out']) : '--:--',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: !isHoliday && rec['time_out'] != null ? Colors.blue[700] : Colors.grey[600]),
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: !isHoliday && rec['time_out'] != null ? Colors.blue[700] : Colors.grey[600]),
                               ),
                             ),
                           ),
                         ),
                         Container(
                           width: statusWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 17),
                           child: Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: (status['color'] as Color).withAlpha(25),
-                                borderRadius: BorderRadius.circular(8),
+                                color: (status['color'] as Color).withAlpha(20),
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text(
-                                status['label'],
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: status['color']),
-                                textAlign: TextAlign.center,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    status['label'],
+                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: status['color']),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  if (status['subtitle'] != null) ...[
+                                    const SizedBox(height: 1),
+                                    Text(status['subtitle'], style: TextStyle(fontSize: 7.5, color: (status['color'] as Color).withAlpha(180)), textAlign: TextAlign.center),
+                                  ],
+                                ],
                               ),
                             ),
                           ),
@@ -1001,11 +1100,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       return const Center(child: Text('No monthly attendance reports loaded. Select filters above.'));
     }
 
-    const double dateWidth = 140;
-    const double dayWidth = 100;
-    const double timeWidth = 100;
-    const double statusWidth = 120;
-    final double totalWidth = dateWidth + dayWidth + (timeWidth * 3) + statusWidth;
+    const double dateWidth = 80;
+    const double dayWidth = 86;
+    const double timeWidth = 70;
+    const double statusWidth = 80;
+    final double totalWidth = dateWidth + dayWidth + (timeWidth * 4) + statusWidth;
 
     return Column(
       children: [
@@ -1065,7 +1164,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         final timeOut = d['time_out']?.toString();
                         final duration = d['duration_label']?.toString() ?? '-';
                         final status = _getStatusData(d);
-                        final isHoliday = status['label'] == 'Holiday';
+                        final bool isPresentLog = status['label'] == 'Present' || status['label'] == 'Late';
 
                         return Container(
                           decoration: BoxDecoration(
@@ -1076,69 +1175,69 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             children: [
                               Container(
                                 width: dateWidth,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                child: Text(_formatDisplayDate(dateStr), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                child: Text(_formatDisplayDate(dateStr), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
                               ),
                               Container(
                                 width: dayWidth,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text(weekday, style: const TextStyle(fontSize: 12, color: Colors.black87)),
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: Text(weekday, style: const TextStyle(fontSize: 11, color: Colors.black87)),
                               ),
                               Container(
                                 width: timeWidth,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
                                 child: Center(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: !isHoliday && timeIn != null ? Colors.green.withAlpha(20) : Colors.grey[100],
+                                      color: isPresentLog && timeIn != null ? Colors.green.withAlpha(20) : Colors.grey[100],
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      !isHoliday ? _formatTime(timeIn) : '--:--',
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: !isHoliday && timeIn != null ? Colors.green[700] : Colors.grey[600]),
+                                      isPresentLog && timeIn != null ? _formatTime(timeIn) : '-',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isPresentLog && timeIn != null ? Colors.green[700] : Colors.grey[600]),
                                     ),
                                   ),
                                 ),
                               ),
                               Container(
                                 width: timeWidth,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
                                 child: Center(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: !isHoliday && timeOut != null ? Colors.blue.withAlpha(20) : Colors.grey[100],
+                                      color: isPresentLog && timeOut != null ? Colors.blue.withAlpha(20) : Colors.grey[100],
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      !isHoliday ? _formatTime(timeOut) : '--:--',
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: !isHoliday && timeOut != null ? Colors.blue[700] : Colors.grey[600]),
+                                      isPresentLog && timeOut != null ? _formatTime(timeOut) : '-',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isPresentLog && timeOut != null ? Colors.blue[700] : Colors.grey[600]),
                                     ),
                                   ),
                                 ),
                               ),
                               Container(
                                 width: timeWidth,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
                                 child: Center(
-                                  child: Text(duration, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                  child: Text(isPresentLog ? duration : '-', style: const TextStyle(fontSize: 11, color: Colors.black54)),
                                 ),
                               ),
                               Container(
                                 width: statusWidth,
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Center(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                     width: double.infinity,
                                     decoration: BoxDecoration(
-                                      color: (status['color'] as Color).withAlpha(25),
-                                      borderRadius: BorderRadius.circular(8),
+                                      color: (status['color'] as Color).withAlpha(20),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                       status['label'],
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: status['color']),
+                                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: status['color']),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
