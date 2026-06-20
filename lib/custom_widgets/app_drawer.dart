@@ -243,6 +243,21 @@ class AppDrawer extends StatelessWidget {
                       }
                     },
                   ),
+                // Leave Rules Config (Admin only)
+                if (authProvider.hasPermission('can-view-attendence') && !isEmployee)
+                  _buildMenuItem(
+                    context: context,
+                    icon: Icons.settings_rounded,
+                    label: 'Leave Rules',
+                    routeName: '/leave-rules',
+                    isActive: activeRoute == '/leave-rules',
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (activeRoute != '/leave-rules') {
+                        Navigator.pushNamed(context, '/leave-rules');
+                      }
+                    },
+                  ),
               ],
             ),
           ),

@@ -10,6 +10,7 @@ import 'providers/salary/salary_provider.dart';
 import 'providers/salary/salary_report_provider.dart';
 import 'providers/leaves/leave_provider.dart';
 import 'providers/leaves/short_leave_provider.dart';
+import 'providers/leaves/leave_rules_provider.dart';
 
 // Screens imports
 import 'screens/splash/splash_screen.dart';
@@ -19,6 +20,7 @@ import 'screens/employees/employees_screen.dart';
 import 'screens/attendance/absents_screen.dart';
 import 'screens/attendance/today_attendance_screen.dart';
 import 'screens/reports/salary_report_screen.dart';
+import 'screens/leaves/leave_rules_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,6 +42,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => SalaryReportProvider()),
         ChangeNotifierProvider(create: (_) => LeaveProvider()),
         ChangeNotifierProvider(create: (_) => ShortLeaveProvider()),
+        ChangeNotifierProvider(create: (_) => LeaveRulesProvider()),
       ],
       child: MaterialApp(
         title: 'Payroll App',
@@ -84,6 +87,7 @@ class MyApp extends StatelessWidget {
           '/short-leaves': (context) => const MainNavigationScreen(initialIndex: 4),
           '/salary': (context) => const MainNavigationScreen(initialIndex: 5),
           '/salary-reports': (context) => const SalaryReportScreen(),
+          '/leave-rules': (context) => const LeaveRulesScreen(),
 
           // Details routes
           '/employees-list': (context) => const EmployeesScreen(),

@@ -45,14 +45,18 @@ class LeaveProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchLeaves({int? employeeId}) async {
+  Future<void> fetchLeaves({int? employeeId, String? status}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final param = employeeId != null ? '?employee_id=$employeeId' : '';
-      final response = await ApiService().get('/api/employee-leaves$param');
+      final List<String> queryParams = [];
+      if (employeeId != null) queryParams.add('employee_id=$employeeId');
+      if (status != null && status.isNotEmpty) queryParams.add('status=$status');
+
+      final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      final response = await ApiService().get('/api/employee-leaves$queryString');
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
