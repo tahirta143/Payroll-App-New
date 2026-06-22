@@ -83,7 +83,7 @@ class _SalaryScreenState extends State<SalaryScreen> {
           ),
         ),
         title: Text(
-          isEmployee ? 'My Salary Slip' : 'Payroll Configuration',
+          isEmployee ? 'My Salary' : 'Salaries',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),

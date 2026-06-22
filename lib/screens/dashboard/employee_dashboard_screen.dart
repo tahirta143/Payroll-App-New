@@ -54,48 +54,51 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
-            blurRadius: 15,
-            spreadRadius: 2,
+            blurRadius: 10,
+            spreadRadius: 1,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 14.0),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[500],
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     value.toString(),
                     style: const TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1E293B),
                     ),
@@ -299,16 +302,14 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                         physics: const NeverScrollableScrollPhysics(),
                         crossAxisCount: MediaQuery.of(context).size.width > 900
                             ? 3
-                            : MediaQuery.of(context).size.width > 600
-                                ? 2
-                                : 1,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
+                            : 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
                         childAspectRatio: MediaQuery.of(context).size.width > 900
                             ? 3.2
                             : MediaQuery.of(context).size.width > 600
-                                ? 3.0
-                                : 4.2,
+                                ? 2.5
+                                : 2.1,
                         children: [
                           _buildStatCard(
                             label: 'Present Days',

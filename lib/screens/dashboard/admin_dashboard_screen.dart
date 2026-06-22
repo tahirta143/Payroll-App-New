@@ -10,7 +10,7 @@ import '../../custom_widgets/inkdrop_loader.dart';
 import '../employees/employees_screen.dart';
 import '../attendance/absents_screen.dart';
 import '../attendance/today_attendance_screen.dart';
-import '../leaves/leaves_screen.dart';
+import '../leaves/dashboard_leaves_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -471,8 +471,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         childAspectRatio: MediaQuery.of(context).size.width > 900
                             ? 1.8
                             : MediaQuery.of(context).size.width > 600
-                                ? 1.6
-                                : 1.5,
+                                ? 1.8
+                                : 1.7,
                         children: [
                           _buildKpiCard(
                             label: 'Total Employees',
@@ -509,7 +509,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const LeavesScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) => DashboardLeavesScreen(
+                                    initialDate: _selectedDate,
+                                  ),
+                                ),
                               );
                             },
                           ),

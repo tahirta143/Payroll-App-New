@@ -467,7 +467,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
         ),
         title: Text(
-          isEmployee ? 'My Attendance' : 'Attendance Dashboard',
+          isEmployee ? 'My Attendance' : 'Attendance ',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
@@ -485,7 +485,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ),
               child: Row(
                 children: [
-                  _buildSegmentButton(0, 'Registry', Icons.history),
+                  _buildSegmentButton(0, 'Daily', Icons.history),
                   _buildSegmentButton(1, 'Datewise', Icons.calendar_today),
                   _buildSegmentButton(2, 'Monthly', Icons.analytics_outlined),
                 ],

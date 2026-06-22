@@ -49,37 +49,57 @@ class LeaveRulesModel {
 
   factory LeaveRulesModel.fromJson(Map<String, dynamic> json) {
     return LeaveRulesModel(
-      casualLeavePerYear: json['casual_leave_per_year'] ?? 10,
-      sandwichBeforeAndAfter: json['sandwich_before_and_after'] is int
-          ? json['sandwich_before_and_after'] == 1
-          : (json['sandwich_before_and_after'] ?? true),
-      sandwichBeforeOnly: json['sandwich_before_only'] is int
-          ? json['sandwich_before_only'] == 1
-          : (json['sandwich_before_only'] ?? true),
-      sandwichAfterOnly: json['sandwich_after_only'] is int
-          ? json['sandwich_after_only'] == 1
-          : (json['sandwich_after_only'] ?? true),
-      lateGraceMinutes: json['late_grace_minutes'] ?? 15,
-      latePartialMaxMinutes: json['late_partial_max_minutes'] ?? 120,
-      shortLeaveMaxHours: (json['short_leave_max_hours'] ?? 2.0).toDouble(),
-      shortLeavesPerCasual: json['short_leaves_per_casual'] ?? 3,
-      halfDayMinMinutes: json['half_day_min_minutes'] ?? 120,
-      halfDaysPerCasual: json['half_days_per_casual'] ?? 2,
-      earlyDispersalThresholdMinutes: json['early_dispersal_threshold_minutes'] ?? 420,
-      shortLeavesPerDeduction: json['short_leaves_per_deduction'] ?? 3,
-      halfDaysPerDeduction: json['half_days_per_deduction'] ?? 2,
-      lateGracePerDeduction: json['late_grace_per_deduction'] ?? 3,
-      latePartialPerDeduction: json['late_partial_per_deduction'] ?? 2,
-      allowanceLateGrace: json['allowance_late_grace'] ?? 2,
-      allowanceLatePartial: json['allowance_late_partial'] ?? 1,
-      allowanceHalfDay: json['allowance_half_day'] ?? 1,
-      allowanceShortLeave: json['allowance_short_leave'] ?? 2,
-      allowanceDayLeave: json['allowance_day_leave'] ?? 1,
-      advanceApprovalRequired: json['advance_approval_required'] is int
-          ? json['advance_approval_required'] == 1
-          : (json['advance_approval_required'] ?? true),
-      unauthorizedAbsenceDeduction: json['unauthorized_absence_deduction'] ?? 'full_day',
+      casualLeavePerYear: _toInt(json['casual_leave_per_year'], 10),
+      sandwichBeforeAndAfter: _toBool(json['sandwich_before_and_after'], true),
+      sandwichBeforeOnly: _toBool(json['sandwich_before_only'], true),
+      sandwichAfterOnly: _toBool(json['sandwich_after_only'], true),
+      lateGraceMinutes: _toInt(json['late_grace_minutes'], 15),
+      latePartialMaxMinutes: _toInt(json['late_partial_max_minutes'], 120),
+      shortLeaveMaxHours: _toDouble(json['short_leave_max_hours'], 2.0),
+      shortLeavesPerCasual: _toInt(json['short_leaves_per_casual'], 3),
+      halfDayMinMinutes: _toInt(json['half_day_min_minutes'], 120),
+      halfDaysPerCasual: _toInt(json['half_days_per_casual'], 2),
+      earlyDispersalThresholdMinutes: _toInt(json['early_dispersal_threshold_minutes'], 420),
+      shortLeavesPerDeduction: _toInt(json['short_leaves_per_deduction'], 3),
+      halfDaysPerDeduction: _toInt(json['half_days_per_deduction'], 2),
+      lateGracePerDeduction: _toInt(json['late_grace_per_deduction'], 3),
+      latePartialPerDeduction: _toInt(json['late_partial_per_deduction'], 2),
+      allowanceLateGrace: _toInt(json['allowance_late_grace'], 2),
+      allowanceLatePartial: _toInt(json['allowance_late_partial'], 1),
+      allowanceHalfDay: _toInt(json['allowance_half_day'], 1),
+      allowanceShortLeave: _toInt(json['allowance_short_leave'], 2),
+      allowanceDayLeave: _toInt(json['allowance_day_leave'], 1),
+      advanceApprovalRequired: _toBool(json['advance_approval_required'], true),
+      unauthorizedAbsenceDeduction: json['unauthorized_absence_deduction']?.toString() ?? 'full_day',
     );
+  }
+
+  static int _toInt(dynamic value, int defaultValue) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? defaultValue;
+    if (value is double) return value.toInt();
+    return defaultValue;
+  }
+
+  static double _toDouble(dynamic value, double defaultValue) {
+    if (value == null) return defaultValue;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? defaultValue;
+    return defaultValue;
+  }
+
+  static bool _toBool(dynamic value, bool defaultValue) {
+    if (value == null) return defaultValue;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) {
+      final s = value.toLowerCase();
+      if (s == 'true' || s == '1') return true;
+      if (s == 'false' || s == '0') return false;
+    }
+    return defaultValue;
   }
 
   Map<String, dynamic> toJson() {

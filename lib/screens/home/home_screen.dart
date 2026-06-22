@@ -106,6 +106,16 @@ class _HomeScreenState extends State<HomeScreen> {
       ));
     }
 
+    if (auth.hasPermission('can-view-leave-rules') || !isEmployee) {
+      modules.add(_HomeGridItem(
+        icon: Icons.rule_rounded,
+        title: 'Leave Rules',
+        desc: 'Configure leave entitlements and attendance rules.',
+        color: Colors.blueGrey,
+        onTap: () => Navigator.pushNamed(context, '/leave-rules'),
+      ));
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       drawer: AppDrawer(activeRoute: '/home'),

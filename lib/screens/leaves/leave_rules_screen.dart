@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/leaves/leave_rules_provider.dart';
 import '../../custom_widgets/app_drawer.dart';
+import '../../custom_widgets/inkdrop_loader.dart';
 
 class LeaveRulesScreen extends StatefulWidget {
   const LeaveRulesScreen({super.key});
@@ -250,7 +251,7 @@ class _LeaveRulesScreenState extends State<LeaveRulesScreen> {
         ],
       ),
       body: provider.isLoading || (!provider.isInitialized && provider.error == null)
-          ? const Center(child: CircularProgressIndicator(color: tealColor))
+          ? const Center(child: InkDropLoader(color: tealColor))
           : provider.error != null
               ? _buildErrorState(provider.error!, tealColor)
               : Form(
