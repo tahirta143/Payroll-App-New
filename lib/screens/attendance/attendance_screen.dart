@@ -506,20 +506,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
                 child: Column(
                   children: [
-                    TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search employee name...',
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    if (isWide) ...[
+                      TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search employee name...',
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        onChanged: (val) => setState(() => _searchQuery = val),
                       ),
-                      onChanged: (val) => setState(() => _searchQuery = val),
-                    ),
-                    const SizedBox(height: 12),
-                    if (isWide)
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -561,41 +561,73 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             ),
                           ),
                         ],
-                      )
-                    else ...[
-                      _buildFilterDropdown<DepartmentModel>(
-                        value: _selectedDeptFilter,
-                        hint: 'Dept',
-                        items: provider.departments,
-                        labelBuilder: (d) => d.name,
-                        onChanged: (val) {
-                          setState(() => _selectedDeptFilter = val);
-                          _fetchAttendanceLogs();
-                        },
                       ),
-                      const SizedBox(height: 8),
-                      _buildFilterDropdown<EmployeeModel>(
-                        value: _selectedEmpFilter,
-                        hint: 'Employee',
-                        items: provider.filterEmployees,
-                        labelBuilder: (e) => e.name,
-                        onChanged: (val) {
-                          setState(() => _selectedEmpFilter = val);
-                          _fetchAttendanceLogs();
-                        },
+                    ] else
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Search...',
+                                    prefixIcon: const Icon(Icons.search, size: 18),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                    filled: true,
+                                    fillColor: Colors.grey[100],
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                  ),
+                                  onChanged: (val) => setState(() => _searchQuery = val),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildFilterDropdown<DepartmentModel>(
+                                  value: _selectedDeptFilter,
+                                  hint: 'Dept',
+                                  items: provider.departments,
+                                  labelBuilder: (d) => d.name,
+                                  onChanged: (val) {
+                                    setState(() => _selectedDeptFilter = val);
+                                    _fetchAttendanceLogs();
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildFilterDropdown<EmployeeModel>(
+                                  value: _selectedEmpFilter,
+                                  hint: 'Employee',
+                                  items: provider.filterEmployees,
+                                  labelBuilder: (e) => e.name,
+                                  onChanged: (val) {
+                                    setState(() => _selectedEmpFilter = val);
+                                    _fetchAttendanceLogs();
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildFilterDropdown<DutyShiftModel>(
+                                  value: _selectedShiftFilter,
+                                  hint: 'Duty Shift',
+                                  items: provider.dutyShifts,
+                                  labelBuilder: (s) => s.name,
+                                  onChanged: (val) {
+                                    setState(() => _selectedShiftFilter = val);
+                                    _fetchAttendanceLogs();
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      _buildFilterDropdown<DutyShiftModel>(
-                        value: _selectedShiftFilter,
-                        hint: 'Duty Shift',
-                        items: provider.dutyShifts,
-                        labelBuilder: (s) => s.name,
-                        onChanged: (val) {
-                          setState(() => _selectedShiftFilter = val);
-                          _fetchAttendanceLogs();
-                        },
-                      ),
-                    ],
                   ],
                 ),
               ),
