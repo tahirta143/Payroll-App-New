@@ -96,7 +96,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     label,
                     style: TextStyle(
                       fontFamily: 'Poppins',
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[500],
                     ),
@@ -107,11 +107,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       color: color.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(icon, color: color, size: 16),
+                    child: Icon(icon, color: color, size: 12),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -471,8 +471,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         childAspectRatio: MediaQuery.of(context).size.width > 900
                             ? 1.8
                             : MediaQuery.of(context).size.width > 600
-                                ? 1.8
-                                : 1.7,
+                                ? 1.9
+                                : 1.8,
                         children: [
                           _buildKpiCard(
                             label: 'Total Employees',

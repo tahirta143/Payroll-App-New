@@ -54,6 +54,42 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
+  Widget _buildSubMenuItem({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required String routeName,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    final tealColor = const Color(0xFF007F70);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 20.0, right: 12.0, top: 1.0, bottom: 1.0),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        selected: isActive,
+        selectedTileColor: tealColor.withAlpha(20),
+        selectedColor: tealColor,
+        dense: true,
+        leading: Icon(
+          icon,
+          color: isActive ? tealColor : Colors.grey[500],
+          size: 16,
+        ),
+        title: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            color: isActive ? tealColor : Colors.grey[700],
+          ),
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -226,22 +262,75 @@ class AppDrawer extends StatelessWidget {
                     isActive: activeRoute == '/salary',
                     onTap: () => navigateToTab('/salary'),
                   ),
-                // Salary Reports Screen
+                // Collapsible Reports Section
                 if (authProvider.hasPermission('can-view-salary-sheet-report') ||
                     authProvider.hasPermission('can-view-salary-slip-report') ||
+                    authProvider.hasPermission('can-view-attendence') ||
                     isEmployee)
-                  _buildMenuItem(
-                    context: context,
-                    icon: Icons.assessment_outlined,
-                    label: 'Salary Reports',
-                    routeName: '/salary-reports',
-                    isActive: activeRoute == '/salary-reports',
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (activeRoute != '/salary-reports') {
-                        Navigator.pushNamed(context, '/salary-reports');
-                      }
-                    },
+                  Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: ExpansionTile(
+                        initiallyExpanded: activeRoute == '/salary-reports' || activeRoute == '/attendance-sheet',
+                        shape: const Border(),
+                        collapsedShape: const Border(),
+                        iconColor: tealColor,
+                        collapsedIconColor: Colors.grey[600],
+                        tilePadding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        title: Text(
+                          'Reports',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: (activeRoute == '/salary-reports' || activeRoute == '/attendance-sheet')
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: (activeRoute == '/salary-reports' || activeRoute == '/attendance-sheet')
+                                ? tealColor
+                                : Colors.grey[800],
+                          ),
+                        ),
+                        leading: Icon(
+                          Icons.assessment_outlined,
+                          color: (activeRoute == '/salary-reports' || activeRoute == '/attendance-sheet')
+                              ? tealColor
+                              : Colors.grey[600],
+                          size: 20,
+                        ),
+                        children: [
+                          if (authProvider.hasPermission('can-view-salary-sheet-report') ||
+                              authProvider.hasPermission('can-view-salary-slip-report') ||
+                              isEmployee)
+                            _buildSubMenuItem(
+                              context: context,
+                              icon: Icons.monetization_on_outlined,
+                              label: 'Salary Reports',
+                              routeName: '/salary-reports',
+                              isActive: activeRoute == '/salary-reports',
+                              onTap: () {
+                                Navigator.pop(context);
+                                if (activeRoute != '/salary-reports') {
+                                  Navigator.pushNamed(context, '/salary-reports');
+                                }
+                              },
+                            ),
+                          if (authProvider.hasPermission('can-view-attendence') || isEmployee)
+                            _buildSubMenuItem(
+                              context: context,
+                              icon: Icons.calendar_month_outlined,
+                              label: 'Attendance Sheet',
+                              routeName: '/attendance-sheet',
+                              isActive: activeRoute == '/attendance-sheet',
+                              onTap: () {
+                                Navigator.pop(context);
+                                if (activeRoute != '/attendance-sheet') {
+                                  Navigator.pushNamed(context, '/attendance-sheet');
+                                }
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 // Leave Rules Config (Admin only)
                 if (authProvider.hasPermission('can-view-attendence') && !isEmployee)

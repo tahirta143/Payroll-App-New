@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'providers/auth/auth_provider.dart';
 import 'providers/dashboard/dashboard_provider.dart';
 import 'providers/attendance/attendance_provider.dart';
+import 'providers/attendance/attendance_sheet_provider.dart';
 import 'providers/salary/salary_provider.dart';
 import 'providers/salary/salary_report_provider.dart';
 import 'providers/leaves/leave_provider.dart';
@@ -20,6 +21,7 @@ import 'screens/employees/employees_screen.dart';
 import 'screens/attendance/absents_screen.dart';
 import 'screens/attendance/today_attendance_screen.dart';
 import 'screens/reports/salary_report_screen.dart';
+import 'screens/reports/attendance_sheet_screen.dart';
 import 'screens/leaves/leave_rules_screen.dart';
 
 void main() {
@@ -38,6 +40,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => AttendanceSheetProvider()),
         ChangeNotifierProvider(create: (_) => SalaryProvider()),
         ChangeNotifierProvider(create: (_) => SalaryReportProvider()),
         ChangeNotifierProvider(create: (_) => LeaveProvider()),
@@ -87,6 +90,7 @@ class MyApp extends StatelessWidget {
           '/short-leaves': (context) => const MainNavigationScreen(initialIndex: 4),
           '/salary': (context) => const MainNavigationScreen(initialIndex: 5),
           '/salary-reports': (context) => const SalaryReportScreen(),
+          '/attendance-sheet': (context) => const AttendanceSheetScreen(),
           '/leave-rules': (context) => const LeaveRulesScreen(),
 
           // Details routes
