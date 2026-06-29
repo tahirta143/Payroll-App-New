@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../../providers/attendance/attendance_sheet_provider.dart';
+import '../../providers/auth/auth_provider.dart';
 import '../../models/attendance/attendance_sheet_model.dart';
 import '../../models/attendance/attendance_model.dart'; // DepartmentModel, EmployeeModel
 import '../../custom_widgets/inkdrop_loader.dart';
@@ -30,7 +31,15 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
     final now = DateTime.now();
     _selectedMonth = DateFormat('yyyy-MM').format(now);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AttendanceSheetProvider>(context, listen: false).fetchDepartments();
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final isEmployee = auth.user?.employeeId != null;
+      if (!isEmployee) {
+        Provider.of<AttendanceSheetProvider>(context, listen: false).fetchDepartments();
+      } else {
+        setState(() {
+          _filterType = 'employee';
+        });
+      }
     });
   }
 
@@ -133,25 +142,30 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
   }
 
   void _generateSheet() {
-    if (_filterType == 'department' && _selectedDept == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a department'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-    if (_filterType == 'employee' && _selectedEmp == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an employee'), backgroundColor: Colors.orange),
-      );
-      return;
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final isEmployee = auth.user?.employeeId != null;
+
+    if (!isEmployee) {
+      if (_filterType == 'department' && _selectedDept == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a department'), backgroundColor: Colors.orange),
+        );
+        return;
+      }
+      if (_filterType == 'employee' && _selectedEmp == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select an employee'), backgroundColor: Colors.orange),
+        );
+        return;
+      }
     }
 
     final provider = Provider.of<AttendanceSheetProvider>(context, listen: false);
     provider.fetchAttendanceSheet(
       month: _selectedMonth,
-      filterType: _filterType,
-      departmentId: _selectedDept?.id,
-      employeeId: _selectedEmp?.id,
+      filterType: isEmployee ? 'employee' : _filterType,
+      departmentId: isEmployee ? null : _selectedDept?.id,
+      employeeId: isEmployee ? auth.user!.employeeId : _selectedEmp?.id,
     );
     setState(() {
       _hasGenerated = true;
@@ -275,26 +289,31 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
   Widget _buildFilterPanel(AttendanceSheetProvider provider) {
     const tealColor = Color(0xFF007F70);
     final isWide = MediaQuery.of(context).size.width > 800;
+    
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final isEmployee = auth.user?.employeeId != null;
 
     final filterWidgets = [
-      // 1. Search Box
-      SizedBox(
-        width: isWide ? 190 : double.infinity,
-        child: TextField(
-          controller: _searchController,
-          style: const TextStyle(fontSize: 12),
-          decoration: InputDecoration(
-            hintText: 'Search employee...',
-            prefixIcon: const Icon(Icons.search, size: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            filled: true,
-            fillColor: Colors.grey[100],
-            contentPadding: const EdgeInsets.symmetric(vertical: 8),
+      if (!isEmployee) ...[
+        // 1. Search Box
+        SizedBox(
+          width: isWide ? 190 : double.infinity,
+          child: TextField(
+            controller: _searchController,
+            style: const TextStyle(fontSize: 12),
+            decoration: InputDecoration(
+              hintText: 'Search employee...',
+              prefixIcon: const Icon(Icons.search, size: 16),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              filled: true,
+              fillColor: Colors.grey[100],
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+            ),
+            onChanged: (val) => setState(() => _searchQuery = val),
           ),
-          onChanged: (val) => setState(() => _searchQuery = val),
         ),
-      ),
-      const SizedBox(width: 8, height: 8),
+        const SizedBox(width: 8, height: 8),
+      ],
 
       // 2. Month Selector
       SizedBox(
@@ -315,38 +334,40 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
       ),
       const SizedBox(width: 8, height: 8),
 
-      // 3. Filter pills
-      _buildFilterPills(),
-      const SizedBox(width: 8, height: 8),
-
-      // 4. Department Dropdown
-      if (_filterType == 'department' || _filterType == 'employee') ...[
-        SizedBox(
-          width: isWide ? 150 : double.infinity,
-          child: _buildFilterDropdown<DepartmentModel>(
-            value: _selectedDept,
-            hint: 'Department',
-            items: provider.departments,
-            labelBuilder: (d) => d.name,
-            onChanged: _onDeptChanged,
-          ),
-        ),
+      if (!isEmployee) ...[
+        // 3. Filter pills
+        _buildFilterPills(),
         const SizedBox(width: 8, height: 8),
-      ],
 
-      // 5. Employee Dropdown
-      if (_filterType == 'employee') ...[
-        SizedBox(
-          width: isWide ? 160 : double.infinity,
-          child: _buildFilterDropdown<EmployeeModel>(
-            value: _selectedEmp,
-            hint: 'Employee',
-            items: provider.employees,
-            labelBuilder: (e) => e.name,
-            onChanged: (val) => setState(() => _selectedEmp = val),
+        // 4. Department Dropdown
+        if (_filterType == 'department' || _filterType == 'employee') ...[
+          SizedBox(
+            width: isWide ? 150 : double.infinity,
+            child: _buildFilterDropdown<DepartmentModel>(
+              value: _selectedDept,
+              hint: 'Department',
+              items: provider.departments,
+              labelBuilder: (d) => d.name,
+              onChanged: _onDeptChanged,
+            ),
           ),
-        ),
-        const SizedBox(width: 8, height: 8),
+          const SizedBox(width: 8, height: 8),
+        ],
+
+        // 5. Employee Dropdown
+        if (_filterType == 'employee') ...[
+          SizedBox(
+            width: isWide ? 160 : double.infinity,
+            child: _buildFilterDropdown<EmployeeModel>(
+              value: _selectedEmp,
+              hint: 'Employee',
+              items: provider.employees,
+              labelBuilder: (e) => e.name,
+              onChanged: (val) => setState(() => _selectedEmp = val),
+            ),
+          ),
+          const SizedBox(width: 8, height: 8),
+        ],
       ],
 
       // 6. Action button

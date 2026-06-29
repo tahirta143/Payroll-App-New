@@ -70,7 +70,11 @@ class LeaveRulesModel {
       allowanceShortLeave: _toInt(json['allowance_short_leave'], 2),
       allowanceDayLeave: _toInt(json['allowance_day_leave'], 1),
       advanceApprovalRequired: _toBool(json['advance_approval_required'], true),
-      unauthorizedAbsenceDeduction: json['unauthorized_absence_deduction']?.toString() ?? 'full_day',
+      unauthorizedAbsenceDeduction: () {
+        final val = json['unauthorized_absence_deduction']?.toString().toLowerCase();
+        if (val == 'half_day' || val == '0.5') return 'half_day';
+        return 'full_day';
+      }(),
     );
   }
 

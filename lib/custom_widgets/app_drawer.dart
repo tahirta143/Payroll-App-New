@@ -265,7 +265,9 @@ class AppDrawer extends StatelessWidget {
                 // Collapsible Reports Section
                 if (authProvider.hasPermission('can-view-salary-sheet-report') ||
                     authProvider.hasPermission('can-view-salary-slip-report') ||
-                    authProvider.hasPermission('can-view-attendence') ||
+                    (authProvider.hasPermission('can-view-report') &&
+                     (authProvider.hasPermission('can-view-attendance-sheet-report') ||
+                      authProvider.hasPermission('can-view-reports'))) ||
                     isEmployee)
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -314,7 +316,10 @@ class AppDrawer extends StatelessWidget {
                                 }
                               },
                             ),
-                          if (authProvider.hasPermission('can-view-attendence') || isEmployee)
+                          if ((authProvider.hasPermission('can-view-report') &&
+                               (authProvider.hasPermission('can-view-attendance-sheet-report') ||
+                                authProvider.hasPermission('can-view-reports'))) ||
+                              isEmployee)
                             _buildSubMenuItem(
                               context: context,
                               icon: Icons.calendar_month_outlined,

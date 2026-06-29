@@ -32,11 +32,51 @@ class AuthProvider extends ChangeNotifier {
         _authData = LoginResponse.fromJson(decoded);
         ApiService().setToken(_authData?.token);
         notifyListeners();
-        resolveCorrectEmployeeId();
+        
+        final username = prefs.getString('saved_username');
+        final password = prefs.getString('saved_password');
+        if (username != null && password != null) {
+          await loginInBackground(username, password);
+        } else {
+          await resolveCorrectEmployeeId();
+        }
       } catch (e) {
         await prefs.remove('auth_session');
+        await prefs.remove('saved_username');
+        await prefs.remove('saved_password');
+        _authData = null;
+        notifyListeners();
       }
     }
+  }
+
+  Future<bool> loginInBackground(String emailOrUsername, String password) async {
+    try {
+      final response = await ApiService().post('/api/users/login', {
+        'emailOrUsername': emailOrUsername,
+        'password': password,
+      });
+
+      final json = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        _authData = LoginResponse.fromJson(json);
+        ApiService().setToken(_authData!.token);
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_session', jsonEncode(json));
+
+        await resolveCorrectEmployeeId();
+        notifyListeners();
+        return true;
+      } else if (response.statusCode == 401 || response.statusCode == 400 || response.statusCode == 403) {
+        await logout();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('loginInBackground error: $e');
+    }
+    return false;
   }
 
   Future<bool> login(String emailOrUsername, String password) async {
@@ -59,6 +99,8 @@ class AuthProvider extends ChangeNotifier {
         // Save session locally
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_session', jsonEncode(json));
+        await prefs.setString('saved_username', emailOrUsername);
+        await prefs.setString('saved_password', password);
 
         await resolveCorrectEmployeeId();
 
@@ -150,6 +192,8 @@ class AuthProvider extends ChangeNotifier {
     ApiService().setToken(null);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_session');
+    await prefs.remove('saved_username');
+    await prefs.remove('saved_password');
     notifyListeners();
   }
 

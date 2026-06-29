@@ -130,7 +130,7 @@ class _LeaveRulesScreenState extends State<LeaveRulesScreen> {
       _sandwichBeforeOnly = rules.sandwichBeforeOnly;
       _sandwichAfterOnly = rules.sandwichAfterOnly;
       _advanceApprovalRequired = rules.advanceApprovalRequired;
-      _unauthorizedAbsenceDeduction = rules.unauthorizedAbsenceDeduction;
+      _unauthorizedAbsenceDeduction = rules.unauthorizedAbsenceDeduction == 'half_day' ? 'half_day' : 'full_day';
     });
   }
 
@@ -280,61 +280,7 @@ class _LeaveRulesScreenState extends State<LeaveRulesScreen> {
                         _buildFakeTabBar(tealColor),
                         const SizedBox(height: 16),
 
-                        // Section 1: Casual Leave (CL)
-                        _buildSectionCard(
-                          icon: Icons.calendar_today,
-                          title: 'Casual Leave (CL)',
-                          subtitle: 'Annual entitlement and sandwich rule.',
-                          tealColor: tealColor,
-                          children: [
-                            _buildResponsiveRow(width, [
-                              _buildNumberField(
-                                label: 'Casual leaves per year',
-                                controller: _casualLeaveController,
-                                unit: 'days',
-                                helpText: 'Total CL days each staff member is entitled to annually.',
-                              ),
-                              const SizedBox.shrink(), // spacer to fill layout in wide mode
-                            ]),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Divider(height: 1),
-                            ),
-                            Text(
-                              'SANDWICH RULE — WHICH PATTERNS COUNT HOLIDAYS IN BETWEEN AS ABSENT',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[600],
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildToggle(
-                              title: 'Leave on both sides of a holiday',
-                              subtitle: 'Employee takes leave → any holidays fall → takes leave again. The holidays in between are marked absent.',
-                              value: _sandwichBeforeAndAfter,
-                              onChanged: (val) => setState(() => _sandwichBeforeAndAfter = val),
-                              tealColor: tealColor,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildToggle(
-                              title: 'Leave taken just before a holiday',
-                              subtitle: 'Employee takes leave, then holidays follow, then returns normally. The holidays are still marked absent.',
-                              value: _sandwichBeforeOnly,
-                              onChanged: (val) => setState(() => _sandwichBeforeOnly = val),
-                              tealColor: tealColor,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildToggle(
-                              title: 'Leave taken just after a holiday',
-                              subtitle: 'Employee works normally, holidays fall, then takes leave instead of returning. The holidays are marked absent.',
-                              value: _sandwichAfterOnly,
-                              onChanged: (val) => setState(() => _sandwichAfterOnly = val),
-                              tealColor: tealColor,
-                            ),
-                          ],
-                        ),
+
 
                         // Section 2: Late Arrival Thresholds
                         _buildSectionCard(
@@ -523,63 +469,6 @@ class _LeaveRulesScreenState extends State<LeaveRulesScreen> {
                               onChanged: (val) => setState(() => _advanceApprovalRequired = val),
                               tealColor: tealColor,
                             ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              child: Divider(height: 1),
-                            ),
-                            _buildResponsiveRow(width, [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'UNAUTHORIZED ABSENCE DEDUCTION',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.grey[500],
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[50],
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.grey[300]!),
-                                    ),
-                                    child: DropdownButtonHideUnderline(
-                                      child: DropdownButton<String>(
-                                        value: _unauthorizedAbsenceDeduction,
-                                        isExpanded: true,
-                                        style: const TextStyle(fontSize: 13, color: Colors.black, fontFamily: 'Poppins'),
-                                        items: const [
-                                          DropdownMenuItem(
-                                            value: 'full_day',
-                                            child: Text('Full Day'),
-                                          ),
-                                          DropdownMenuItem(
-                                            value: 'half_day',
-                                            child: Text('Half Day'),
-                                          ),
-                                        ],
-                                        onChanged: (val) {
-                                          if (val != null) {
-                                            setState(() => _unauthorizedAbsenceDeduction = val);
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Deduction applied when absence is not approved.',
-                                    style: TextStyle(fontSize: 10, color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox.shrink(),
-                            ]),
                           ],
                         ),
 

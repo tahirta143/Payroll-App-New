@@ -47,7 +47,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final now = DateTime.now();
     _datewiseSelectedDate = DateFormat('yyyy-MM-dd').format(now);
     _monthlySelectedMonth = DateFormat('yyyy-MM').format(now);
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   @override
