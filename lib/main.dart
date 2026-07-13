@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // Providers imports
 import 'providers/auth/auth_provider.dart';
@@ -24,7 +27,76 @@ import 'screens/reports/salary_report_screen.dart';
 import 'screens/reports/attendance_sheet_screen.dart';
 import 'screens/leaves/leave_rules_screen.dart';
 
-void main() {
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint("Handling background message: ${message.messageId}");
+}
+
+// Global configuration for Local Notifications
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  'high_importance_channel', // id
+  'High Importance Notifications', // title
+  description: 'This channel is used for important notifications.', // description
+  importance: Importance.max,
+);
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+    debugPrint('Firebase initialized successfully! 🎉');
+
+    // Get and print FCM token on startup for testing
+    try {
+      String? token = await FirebaseMessaging.instance.getToken();
+      debugPrint('Startup FCM Token: $token');
+    } catch (e) {
+      debugPrint('Error getting FCM token on startup: $e');
+    }
+
+    // 1. Background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // 2. Setup Local Notifications
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+    // 3. Foreground messaging handler
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+      if (notification != null && android != null) {
+        flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              channel.id,
+              channel.name,
+              channelDescription: channel.description,
+              icon: android.smallIcon ?? '@mipmap/ic_launcher',
+            ),
+          ),
+        );
+      }
+    });
+
+  } catch (e) {
+    debugPrint('Firebase initialization error: $e');
+  }
   runApp(const MyApp());
 }
 

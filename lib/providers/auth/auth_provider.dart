@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../api_services/api_service.dart';
 import '../../models/auth/user_model.dart';
 import '../../core/permissions.dart';
@@ -40,6 +41,7 @@ class AuthProvider extends ChangeNotifier {
         } else {
           await resolveCorrectEmployeeId();
         }
+        _setupFcm();
       } catch (e) {
         await prefs.remove('auth_session');
         await prefs.remove('saved_username');
@@ -106,6 +108,7 @@ class AuthProvider extends ChangeNotifier {
 
         _isLoading = false;
         notifyListeners();
+        _setupFcm();
         return true;
       } else {
         _errorMessage = json['message'] ?? 'Authentication failed';
@@ -188,6 +191,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _cleanupFcm();
     _authData = null;
     ApiService().setToken(null);
     final prefs = await SharedPreferences.getInstance();
@@ -203,5 +207,56 @@ class AuthProvider extends ChangeNotifier {
 
   bool hasAnyPermission(List<String> codes) {
     return AppPermissions.hasAnyPermission(permissions, codes);
+  }
+
+  // Setup FCM for the logged-in user
+  Future<void> _setupFcm() async {
+    try {
+      final messaging = FirebaseMessaging.instance;
+
+      // 1. Request notification permissions
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional) {
+        debugPrint('User granted notification permissions.');
+
+        // 2. Retrieve FCM Token
+        String? fcmToken = await messaging.getToken();
+        if (fcmToken != null) {
+          debugPrint('FCM Token: $fcmToken');
+          // Register token to backend
+          await ApiService().registerFcmToken(fcmToken);
+        }
+
+        // 3. Listen to token refreshes
+        messaging.onTokenRefresh.listen((token) async {
+          debugPrint('FCM Token Refreshed: $token');
+          if (isAuthenticated) {
+            await ApiService().registerFcmToken(token);
+          }
+        });
+      } else {
+        debugPrint('User declined or has not accepted notification permissions.');
+      }
+    } catch (e) {
+      debugPrint('Error setting up FCM: $e');
+    }
+  }
+
+  // Clean up FCM on logout
+  Future<void> _cleanupFcm() async {
+    try {
+      String? token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await ApiService().deleteFcmToken(token);
+      }
+    } catch (e) {
+      debugPrint('Error cleaning up FCM token: $e');
+    }
   }
 }

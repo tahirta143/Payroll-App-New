@@ -130,4 +130,12 @@ class ApiService {
       throw SocketException('Network error: $e');
     }
   }
+
+  Future<http.Response> registerFcmToken(String token) async {
+    return await post('/api/users/fcm-token', {'token': token});
+  }
+
+  Future<http.Response> deleteFcmToken(String token) async {
+    return await delete('/api/users/fcm-token?token=$token');
+  }
 }
