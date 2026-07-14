@@ -19,6 +19,7 @@ import 'providers/leaves/leave_rules_provider.dart';
 // Screens imports
 import 'screens/splash/splash_screen.dart';
 import 'screens/login/login_screen.dart';
+import 'screens/login/forgot_password_screen.dart';
 import 'screens/home/main_navigation_screen.dart';
 import 'screens/employees/employees_screen.dart';
 import 'screens/attendance/absents_screen.dart';
@@ -75,9 +76,9 @@ void main() async {
 
     // 3. Foreground messaging handler
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint("Foreground message received: ${message.notification?.title} - ${message.notification?.body}");
       RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
-      if (notification != null && android != null) {
+      if (notification != null) {
         flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
@@ -87,7 +88,7 @@ void main() async {
               channel.id,
               channel.name,
               channelDescription: channel.description,
-              icon: android.smallIcon ?? '@mipmap/ic_launcher',
+              icon: '@mipmap/ic_launcher',
             ),
           ),
         );
@@ -152,6 +153,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/': (context) => const SplashScreen(),
           '/login': (context) => const LoginScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/nav': (context) => const MainNavigationScreen(initialIndex: 0),
           
           // Drawer and Home grid index mapping

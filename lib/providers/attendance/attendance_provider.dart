@@ -139,17 +139,22 @@ class AttendanceProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    final payload = {
+      'date': date,
+      'department_id': departmentId,
+      'employee_id': employeeId,
+      'duty_shift_id': dutyShiftId,
+      'machine_code': machineCode,
+      'duty_shift': dutyShiftText,
+      'time_in': timeIn,
+      'time_out': timeOut,
+    };
+    debugPrint('Create Attendance Request Payload: $payload');
+
     try {
-      final response = await ApiService().post('/api/attendance', {
-        'date': date,
-        'department_id': departmentId,
-        'employee_id': employeeId,
-        'duty_shift_id': dutyShiftId,
-        'machine_code': machineCode,
-        'duty_shift': dutyShiftText,
-        'time_in': timeIn,
-        'time_out': timeOut,
-      });
+      final response = await ApiService().post('/api/attendance', payload);
+      debugPrint('Create Attendance Response Status Code: ${response.statusCode}');
+      debugPrint('Create Attendance Response Body: ${response.body}');
 
       _isLoading = false;
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -162,6 +167,7 @@ class AttendanceProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
+      debugPrint('Create Attendance Error: $e');
       _error = 'Network error: $e';
       _isLoading = false;
       notifyListeners();

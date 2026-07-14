@@ -230,14 +230,25 @@ class AuthProvider extends ChangeNotifier {
         if (fcmToken != null) {
           debugPrint('FCM Token: $fcmToken');
           // Register token to backend
-          await ApiService().registerFcmToken(fcmToken);
+          try {
+            final response = await ApiService().registerFcmToken(fcmToken);
+            debugPrint('FCM Token registration response code: ${response.statusCode}');
+            debugPrint('FCM Token registration response body: ${response.body}');
+          } catch (e) {
+            debugPrint('FCM Token registration HTTP request failed: $e');
+          }
         }
 
         // 3. Listen to token refreshes
         messaging.onTokenRefresh.listen((token) async {
           debugPrint('FCM Token Refreshed: $token');
           if (isAuthenticated) {
-            await ApiService().registerFcmToken(token);
+            try {
+              final response = await ApiService().registerFcmToken(token);
+              debugPrint('FCM Refreshed Token registration response code: ${response.statusCode}');
+            } catch (e) {
+              debugPrint('FCM Refreshed Token registration failed: $e');
+            }
           }
         });
       } else {
@@ -257,6 +268,106 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error cleaning up FCM token: $e');
+    }
+  }
+
+  // --- Password Reset OTP Flow Helpers ---
+
+  Future<Map<String, dynamic>> forgotPassword(String usernameOrEmail) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService().post('/api/users/forgot-password', {
+        'usernameOrEmail': usernameOrEmail,
+      });
+
+      final json = jsonDecode(response.body);
+      _isLoading = false;
+      notifyListeners();
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': json['message'] ?? 'OTP sent successfully',
+          'maskedEmail': json['maskedEmail'] ?? '',
+        };
+      } else {
+        _errorMessage = json['message'] ?? 'Failed to request OTP';
+        return {'success': false, 'message': _errorMessage!};
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Connection error: $e';
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage!};
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyOtp(String usernameOrEmail, String otp) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService().post('/api/users/verify-otp', {
+        'usernameOrEmail': usernameOrEmail,
+        'otp': otp,
+      });
+
+      final json = jsonDecode(response.body);
+      _isLoading = false;
+      notifyListeners();
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': json['message'] ?? 'OTP verified successfully',
+          'userId': json['userId'],
+        };
+      } else {
+        _errorMessage = json['message'] ?? 'OTP verification failed';
+        return {'success': false, 'message': _errorMessage!};
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Connection error: $e';
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage!};
+    }
+  }
+
+  Future<Map<String, dynamic>> resetPasswordWithOtp(int userId, String newPassword, String confirmPassword) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiService().post('/api/users/reset-password-otp', {
+        'userId': userId,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      });
+
+      final json = jsonDecode(response.body);
+      _isLoading = false;
+      notifyListeners();
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': json['message'] ?? 'Password reset successfully',
+        };
+      } else {
+        _errorMessage = json['message'] ?? 'Failed to reset password';
+        return {'success': false, 'message': _errorMessage!};
+      }
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Connection error: $e';
+      notifyListeners();
+      return {'success': false, 'message': _errorMessage!};
     }
   }
 }

@@ -263,7 +263,29 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/forgot-password');
+                            },
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(50, 30),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              'Forgot Password?',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: tealColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
 
                         // Sign In Button
                         authProvider.isLoading
@@ -296,21 +318,21 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               // Settings Toggle
-              Positioned(
-                bottom: 20,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: TextButton.icon(
-                    onPressed: _showApiSettings,
-                    icon: Icon(Icons.settings_outlined, size: 16, color: Colors.grey[400]),
-                    label: Text(
-                      'Server Configuration',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
-                    ),
-                  ),
-                ),
-              ),
+              // Positioned(
+              //   bottom: 20,
+              //   left: 0,
+              //   right: 0,
+              //   child: Center(
+              //     child: TextButton.icon(
+              //       onPressed: _showApiSettings,
+              //       icon: Icon(Icons.settings_outlined, size: 16, color: Colors.grey[400]),
+              //       label: Text(
+              //         'Server Configuration',
+              //         style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              //       ),
+              //     ),
+              //   ),
+              // ),
             ],
           ),
         ),
