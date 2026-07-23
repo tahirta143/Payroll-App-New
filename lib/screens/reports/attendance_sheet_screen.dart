@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../../providers/attendance/attendance_sheet_provider.dart';
 import '../../providers/auth/auth_provider.dart';
@@ -172,6 +176,105 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
     });
   }
 
+  String _formatMonthLabel(String ym) {
+    if (ym.isEmpty) return '';
+    try {
+      final parts = ym.split('-');
+      if (parts.length < 2) return ym;
+      final dt = DateTime(int.parse(parts[0]), int.parse(parts[1]), 1);
+      return DateFormat('MMMM yyyy').format(dt);
+    } catch (_) {
+      return ym;
+    }
+  }
+
+  void _showPluginRestartDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.orange, size: 24),
+            SizedBox(width: 8),
+            Text('App Restart Required', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'The PDF/Printing plugin was newly added to the project.\n\n'
+          'Flutter requires you to STOP the running app in your terminal or IDE, and run "flutter run" (or press Debug) to compile native plugin bindings.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Color(0xFF007F70), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- EXPORT PDF & PRINT ---
+  Future<void> _exportPdf() async {
+    try {
+      final provider = Provider.of<AttendanceSheetProvider>(context, listen: false);
+      final sheet = provider.attendanceSheet;
+      if (sheet == null || sheet.employees.isEmpty || sheet.days.isEmpty) return;
+
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4.landscape,
+          margin: const pw.EdgeInsets.all(16),
+          build: (pw.Context context) {
+            final headers = ["#", "Department", "Employee", ...sheet.days.map((d) => "${d.day}")];
+            final data = sheet.employees.asMap().entries.map((entry) {
+              final idx = entry.key + 1;
+              final emp = entry.value;
+              return [
+                "$idx",
+                emp.departmentName,
+                "${emp.empId} ${emp.name}".trim(),
+                ...emp.statuses.map((s) {
+                  if (s.code == 'A' && s.reason.toLowerCase().contains('not marked')) return '·';
+                  return s.code.isNotEmpty ? s.code : '';
+                }),
+              ];
+            }).toList();
+
+            return [
+              pw.Text("Monthly Attendance Sheet - ${_formatMonthLabel(_selectedMonth)}",
+                  style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 8),
+              pw.TableHelper.fromTextArray(
+                headers: headers,
+                data: data,
+                cellStyle: const pw.TextStyle(fontSize: 6),
+                headerStyle: pw.TextStyle(fontSize: 6, fontWeight: pw.FontWeight.bold),
+                cellAlignment: pw.Alignment.center,
+              ),
+            ];
+          },
+        ),
+      );
+
+      await Printing.layoutPdf(onLayout: (format) async => pdf.save());
+    } on MissingPluginException {
+      _showPluginRestartDialog();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF Export error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   // Visual status styler mapping
   final Map<String, _StatusStyle> _statusStyles = {
     'P': _StatusStyle(bg: const Color(0xFFF0FDF4), text: const Color(0xFF166534), border: const Color(0xFFBBF7D0), label: 'Present'),
@@ -181,6 +284,7 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
     'OD': _StatusStyle(bg: const Color(0xFFF0F9FF), text: const Color(0xFF075985), border: const Color(0xFFBAE6FD), label: 'On Duty'),
     'HD': _StatusStyle(bg: const Color(0xFFFFFBEB), text: const Color(0xFF92400E), border: const Color(0xFFFDE68A), label: 'Half Day'),
     'OL': _StatusStyle(bg: const Color(0xFFF5F3FF), text: const Color(0xFF5B21B6), border: const Color(0xFFDDD6FE), label: 'On Leave'),
+    'WH': _StatusStyle(bg: const Color(0xFFEFF6FF), text: const Color(0xFF1E3A8A), border: const Color(0xFFBFDBFE), label: 'Weekly Holiday'),
   };
 
   _StatusStyle _getStatusStyle(String code) {
@@ -292,6 +396,7 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
     
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final isEmployee = auth.user?.employeeId != null;
+    final hasData = provider.attendanceSheet != null && provider.attendanceSheet!.employees.isNotEmpty;
 
     final filterWidgets = [
       if (!isEmployee) ...[
@@ -370,23 +475,47 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
         ],
       ],
 
-      // 6. Action button
-      SizedBox(
-        width: isWide ? null : double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: _generateSheet,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: tealColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            elevation: 0,
+      // 6. Action button & Export / Print
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ElevatedButton.icon(
+            onPressed: _generateSheet,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: tealColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              elevation: 0,
+            ),
+            icon: const Icon(Icons.flash_on, color: Colors.white, size: 16),
+            label: const Text(
+              'Generate Sheet',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+            ),
           ),
-          icon: const Icon(Icons.flash_on, color: Colors.white, size: 16),
-          label: const Text(
-            'Generate Sheet',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-          ),
-        ),
+          if (hasData) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _exportPdf,
+              icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF0F172A), size: 20),
+              tooltip: 'Export PDF',
+              style: IconButton.styleFrom(
+                backgroundColor: const Color(0xFFF1F5F9),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              onPressed: _exportPdf,
+              icon: const Icon(Icons.print, color: Color(0xFF334155), size: 20),
+              tooltip: 'Print',
+              style: IconButton.styleFrom(
+                backgroundColor: const Color(0xFFF1F5F9),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        ],
       ),
     ];
 
@@ -775,6 +904,22 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
                 ? '${emp.name} · Day ${day.day}\nReason: $reason'
                 : '${emp.name} · Day ${day.day}';
 
+            // 1. Future dates / blank code: render empty quiet cell
+            if (code.isEmpty) {
+              return Container(
+                width: dayWidth,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: day.isWeekend ? const Color(0xFFF9FAFB) : Colors.transparent,
+                ),
+                child: const SizedBox(width: 25, height: 22),
+              );
+            }
+
+            // 2. Unmarked attendance check (code == 'A' and reason contains 'not marked')
+            final bool isUnmarked = (code == 'A' && reason.toLowerCase().contains('not marked'));
+
             return Container(
               width: dayWidth,
               height: 46,
@@ -785,45 +930,64 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
               child: Tooltip(
                 message: tooltipText,
                 preferBelow: false,
-                triggerMode: TooltipTriggerMode.tap, // Handles tap-to-tooltip seamlessly on mobile
+                triggerMode: TooltipTriggerMode.tap,
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 25,
-                        height: 22,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: styleObj.bg,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: styleObj.border, width: 1),
-                        ),
-                        child: Text(
-                          code.isNotEmpty ? code : '—',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: styleObj.text,
+                  child: isUnmarked
+                      ? Container(
+                          width: 25,
+                          height: 22,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
-                        ),
-                      ),
-                      if (reason.isNotEmpty)
-                        Positioned(
-                          top: -3,
-                          right: -3,
                           child: Container(
-                            width: 6,
-                            height: 6,
+                            width: 8,
+                            height: 8,
                             decoration: const BoxDecoration(
-                              color: Colors.red,
+                              color: Color(0xFF94A3B8),
                               shape: BoxShape.circle,
                             ),
                           ),
+                        )
+                      : Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 25,
+                              height: 22,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: styleObj.bg,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: styleObj.border, width: 1),
+                              ),
+                              child: Text(
+                                code,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: styleObj.text,
+                                ),
+                              ),
+                            ),
+                            if (reason.isNotEmpty)
+                              Positioned(
+                                top: -3,
+                                right: -3,
+                                child: Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                    ],
-                  ),
                 ),
               ),
             );

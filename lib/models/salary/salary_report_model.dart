@@ -1,5 +1,3 @@
-import '../attendance/attendance_model.dart';
-
 class MonthlySalarySheetRow {
   final String? unit;
   final String? employee;
@@ -108,6 +106,9 @@ class SalarySlipEmployeeInfo {
   final String? shiftStart;
   final String? shiftEnd;
   final String? joiningDate;
+  final bool allowOvertime;
+  final bool allowLateComing;
+  final bool allowDeductions;
 
   SalarySlipEmployeeInfo({
     required this.id,
@@ -122,9 +123,20 @@ class SalarySlipEmployeeInfo {
     this.shiftStart,
     this.shiftEnd,
     this.joiningDate,
+    this.allowOvertime = true,
+    this.allowLateComing = true,
+    this.allowDeductions = true,
   });
 
   factory SalarySlipEmployeeInfo.fromJson(Map<String, dynamic> json) {
+    bool parseBool(dynamic val, bool fallback) {
+      if (val == null) return fallback;
+      if (val is bool) return val;
+      if (val == 1 || val == '1' || val == 'true') return true;
+      if (val == 0 || val == '0' || val == 'false') return false;
+      return fallback;
+    }
+
     return SalarySlipEmployeeInfo(
       id: json['id'] is int ? json['id'] : (int.tryParse(json['id']?.toString() ?? '0') ?? 0),
       empId: json['emp_id']?.toString(),
@@ -138,6 +150,94 @@ class SalarySlipEmployeeInfo {
       shiftStart: json['shift_start']?.toString(),
       shiftEnd: json['shift_end']?.toString(),
       joiningDate: json['joining_date']?.toString(),
+      allowOvertime: parseBool(json['allow_overtime'], true),
+      allowLateComing: parseBool(json['allow_late_coming'], true),
+      allowDeductions: parseBool(json['allow_deductions'], true),
+    );
+  }
+}
+
+class DeductionBreakdownRow {
+  final dynamic chargeable;
+  final double deductionUnits;
+  final double rate;
+  final double amount;
+  final String note;
+
+  DeductionBreakdownRow({
+    required this.chargeable,
+    required this.deductionUnits,
+    required this.rate,
+    required this.amount,
+    required this.note,
+  });
+
+  factory DeductionBreakdownRow.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic val) {
+      if (val == null) return 0.0;
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
+    return DeductionBreakdownRow(
+      chargeable: json['chargeable'] ?? '-',
+      deductionUnits: parseDouble(json['deductionUnits']),
+      rate: parseDouble(json['rate']),
+      amount: parseDouble(json['amount']),
+      note: json['note']?.toString() ?? '',
+    );
+  }
+}
+
+class DeductionBreakdown {
+  final DeductionBreakdownRow? lateGrace;
+  final DeductionBreakdownRow? latePartial;
+  final DeductionBreakdownRow? halfDay;
+  final DeductionBreakdownRow? shortLeave;
+  final DeductionBreakdownRow? absent;
+
+  DeductionBreakdown({
+    this.lateGrace,
+    this.latePartial,
+    this.halfDay,
+    this.shortLeave,
+    this.absent,
+  });
+
+  factory DeductionBreakdown.fromJson(Map<String, dynamic> json) {
+    return DeductionBreakdown(
+      lateGrace: json['late_grace'] != null ? DeductionBreakdownRow.fromJson(json['late_grace']) : null,
+      latePartial: json['late_partial'] != null ? DeductionBreakdownRow.fromJson(json['late_partial']) : null,
+      halfDay: json['half_day'] != null ? DeductionBreakdownRow.fromJson(json['half_day']) : null,
+      shortLeave: json['short_leave'] != null ? DeductionBreakdownRow.fromJson(json['short_leave']) : null,
+      absent: json['absent'] != null ? DeductionBreakdownRow.fromJson(json['absent']) : null,
+    );
+  }
+}
+
+class SalarySlipSettingsUsed {
+  final String? maxLateTime;
+  final dynamic halfDayDeductionPercent;
+  final dynamic fullDayDeductionPercent;
+  final double overtimeRate;
+
+  SalarySlipSettingsUsed({
+    this.maxLateTime,
+    this.halfDayDeductionPercent,
+    this.fullDayDeductionPercent,
+    this.overtimeRate = 0.0,
+  });
+
+  factory SalarySlipSettingsUsed.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic val) {
+      if (val == null) return 0.0;
+      return double.tryParse(val.toString()) ?? 0.0;
+    }
+
+    return SalarySlipSettingsUsed(
+      maxLateTime: json['max_late_time']?.toString(),
+      halfDayDeductionPercent: json['half_day_deduction_percent'],
+      fullDayDeductionPercent: json['full_day_deduction_percent'],
+      overtimeRate: parseDouble(json['overtime_rate']),
     );
   }
 }
@@ -148,6 +248,16 @@ class SalarySlipPayrollCalculation {
   final double fullDayDeductionTotal;
   final double advanceAmountTotal;
   final double overtimeAmountTotal;
+  final double attendanceDeductionTotal;
+  final double overtimePerHourSalary;
+  final double overtimeMultiplier;
+  final double overtimeEffectiveRate;
+  final int overtimeMinutesTotal;
+  final double perDaySalary;
+  final double fullDayRate;
+  final double halfDayRate;
+  final double thirdDayRate;
+  final DeductionBreakdown? deductionBreakdown;
 
   SalarySlipPayrollCalculation({
     required this.netPayable,
@@ -155,6 +265,16 @@ class SalarySlipPayrollCalculation {
     required this.fullDayDeductionTotal,
     required this.advanceAmountTotal,
     required this.overtimeAmountTotal,
+    this.attendanceDeductionTotal = 0.0,
+    this.overtimePerHourSalary = 0.0,
+    this.overtimeMultiplier = 1.0,
+    this.overtimeEffectiveRate = 0.0,
+    this.overtimeMinutesTotal = 0,
+    this.perDaySalary = 0.0,
+    this.fullDayRate = 0.0,
+    this.halfDayRate = 0.0,
+    this.thirdDayRate = 0.0,
+    this.deductionBreakdown,
   });
 
   factory SalarySlipPayrollCalculation.fromJson(Map<String, dynamic> json) {
@@ -162,12 +282,27 @@ class SalarySlipPayrollCalculation {
       if (val == null) return 0.0;
       return double.tryParse(val.toString()) ?? 0.0;
     }
+    int parseInt(dynamic val) {
+      if (val == null) return 0;
+      return int.tryParse(val.toString()) ?? 0;
+    }
+
     return SalarySlipPayrollCalculation(
       netPayable: parseDouble(json['net_payable']),
       halfDayDeductionTotal: parseDouble(json['half_day_deduction_total']),
       fullDayDeductionTotal: parseDouble(json['full_day_deduction_total']),
       advanceAmountTotal: parseDouble(json['advance_amount_total']),
       overtimeAmountTotal: parseDouble(json['overtime_amount_total']),
+      attendanceDeductionTotal: parseDouble(json['attendance_deduction_total']),
+      overtimePerHourSalary: parseDouble(json['overtime_per_hour_salary']),
+      overtimeMultiplier: parseDouble(json['overtime_multiplier']) == 0 ? 1.0 : parseDouble(json['overtime_multiplier']),
+      overtimeEffectiveRate: parseDouble(json['overtime_effective_rate']),
+      overtimeMinutesTotal: parseInt(json['overtime_minutes_total']),
+      perDaySalary: parseDouble(json['per_day_salary']),
+      fullDayRate: parseDouble(json['full_day_rate']),
+      halfDayRate: parseDouble(json['half_day_rate']),
+      thirdDayRate: parseDouble(json['third_day_rate']),
+      deductionBreakdown: json['deduction_breakdown'] != null ? DeductionBreakdown.fromJson(json['deduction_breakdown']) : null,
     );
   }
 }
@@ -265,12 +400,70 @@ class SalarySlipStructure {
   }
 }
 
+class SalarySlipDayDetail {
+  final String date;
+  final String? weekday;
+  final String status;
+  final String? timeIn;
+  final String? timeOut;
+  final int lateMinutes;
+  final String? lateLabel;
+  final String? durationLabel;
+  final String? remarks;
+
+  SalarySlipDayDetail({
+    required this.date,
+    this.weekday,
+    required this.status,
+    this.timeIn,
+    this.timeOut,
+    this.lateMinutes = 0,
+    this.lateLabel,
+    this.durationLabel,
+    this.remarks,
+  });
+
+  factory SalarySlipDayDetail.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic val) {
+      if (val == null) return 0;
+      return int.tryParse(val.toString()) ?? 0;
+    }
+
+    String? remarks;
+    if (json['on_duty'] != null) {
+      remarks = json['on_duty']['reason'] ?? json['on_duty']['location'];
+    } else if (json['leave'] != null) {
+      remarks = json['leave']['reason'] ?? json['leave']['nature_of_leave'];
+    } else if (json['holiday'] != null) {
+      remarks = json['holiday']['reason'];
+    } else if (json['absent'] != null) {
+      remarks = json['absent']['reason'];
+    } else {
+      remarks = json['duration_label'];
+    }
+
+    return SalarySlipDayDetail(
+      date: json['date']?.toString() ?? '',
+      weekday: json['weekday']?.toString(),
+      status: json['status']?.toString() ?? '',
+      timeIn: json['time_in']?.toString(),
+      timeOut: json['time_out']?.toString(),
+      lateMinutes: parseInt(json['late_minutes']),
+      lateLabel: json['late_label']?.toString(),
+      durationLabel: json['duration_label']?.toString(),
+      remarks: remarks,
+    );
+  }
+}
+
 class SalarySlipResponse {
   final String month;
   final SalarySlipEmployeeInfo employee;
   final SalarySlipStructure salaryStructure;
   final SalarySlipPayrollCalculation payrollCalculation;
   final SalarySlipAttendanceSummary attendanceSummary;
+  final SalarySlipSettingsUsed? settingsUsed;
+  final List<SalarySlipDayDetail> days;
   final dynamic range;
 
   SalarySlipResponse({
@@ -279,16 +472,21 @@ class SalarySlipResponse {
     required this.salaryStructure,
     required this.payrollCalculation,
     required this.attendanceSummary,
+    this.settingsUsed,
+    this.days = const [],
     this.range,
   });
 
   factory SalarySlipResponse.fromJson(Map<String, dynamic> json) {
+    final daysList = json['days'] as List? ?? [];
     return SalarySlipResponse(
       month: json['month']?.toString() ?? '',
       employee: SalarySlipEmployeeInfo.fromJson(json['employee'] ?? {}),
       salaryStructure: SalarySlipStructure.fromJson(json['salary_structure'] ?? {}),
       payrollCalculation: SalarySlipPayrollCalculation.fromJson(json['payroll_calculation'] ?? {}),
       attendanceSummary: SalarySlipAttendanceSummary.fromJson(json['attendance_summary'] ?? {}),
+      settingsUsed: json['settings_used'] != null ? SalarySlipSettingsUsed.fromJson(json['settings_used']) : null,
+      days: daysList.map((d) => SalarySlipDayDetail.fromJson(d)).toList(),
       range: json['range'],
     );
   }
