@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -30,8 +31,10 @@ import 'screens/leaves/leave_rules_screen.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  debugPrint("Handling background message: ${message.messageId}");
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+    debugPrint("Handling background message: ${message.messageId}");
+  }
 }
 
 // Global configuration for Local Notifications
@@ -48,53 +51,56 @@ const AndroidNotificationChannel channel = AndroidNotificationChannel(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp();
-    debugPrint('Firebase initialized successfully! 🎉');
+    if (!kIsWeb) {
+      await Firebase.initializeApp();
+      debugPrint('Firebase initialized successfully! 🎉');
 
-    // Get and print FCM token on startup for testing
-    try {
-      String? token = await FirebaseMessaging.instance.getToken();
-      debugPrint('Startup FCM Token: $token');
-    } catch (e) {
-      debugPrint('Error getting FCM token on startup: $e');
-    }
-
-    // 1. Background message handler
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    // 2. Setup Local Notifications
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
-    // 3. Foreground messaging handler
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint("Foreground message received: ${message.notification?.title} - ${message.notification?.body}");
-      RemoteNotification? notification = message.notification;
-      if (notification != null) {
-        flutterLocalNotificationsPlugin.show(
-          notification.hashCode,
-          notification.title,
-          notification.body,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              channel.id,
-              channel.name,
-              channelDescription: channel.description,
-              icon: '@mipmap/ic_launcher',
-            ),
-          ),
-        );
+      // Get and print FCM token on startup for testing
+      try {
+        String? token = await FirebaseMessaging.instance.getToken();
+        debugPrint('Startup FCM Token: $token');
+      } catch (e) {
+        debugPrint('Error getting FCM token on startup: $e');
       }
-    });
 
+      // 1. Background message handler
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+      // 2. Setup Local Notifications
+      await flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const InitializationSettings initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+      // 3. Foreground messaging handler
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint("Foreground message received: ${message.notification?.title} - ${message.notification?.body}");
+        RemoteNotification? notification = message.notification;
+        if (notification != null) {
+          flutterLocalNotificationsPlugin.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                channel.id,
+                channel.name,
+                channelDescription: channel.description,
+                icon: '@mipmap/ic_launcher',
+              ),
+            ),
+          );
+        }
+      });
+    } else {
+      debugPrint('Running on Web: Firebase native auto-initialization skipped.');
+    }
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
   }

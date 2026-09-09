@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../api_services/api_service.dart';
 import '../../models/auth/user_model.dart';
@@ -211,6 +213,10 @@ class AuthProvider extends ChangeNotifier {
 
   // Setup FCM for the logged-in user
   Future<void> _setupFcm() async {
+    if (kIsWeb || Firebase.apps.isEmpty) {
+      debugPrint('FCM setup skipped (running on Web or Firebase not initialized).');
+      return;
+    }
     try {
       final messaging = FirebaseMessaging.instance;
 
@@ -261,6 +267,7 @@ class AuthProvider extends ChangeNotifier {
 
   // Clean up FCM on logout
   Future<void> _cleanupFcm() async {
+    if (kIsWeb || Firebase.apps.isEmpty) return;
     try {
       String? token = await FirebaseMessaging.instance.getToken();
       if (token != null) {

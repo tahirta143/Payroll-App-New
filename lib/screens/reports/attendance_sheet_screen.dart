@@ -237,7 +237,7 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
               return [
                 "$idx",
                 emp.departmentName,
-                "${emp.empId} ${emp.name}".trim(),
+                emp.name,
                 ...emp.statuses.map((s) {
                   if (s.code == 'A' && s.reason.toLowerCase().contains('not marked')) return '·';
                   return s.code.isNotEmpty ? s.code : '';
@@ -858,37 +858,21 @@ class _AttendanceSheetScreenState extends State<AttendanceSheetScreen> {
             ),
           ),
 
-          // Employee Profile Name & ID
+          // Employee Profile Name
           Container(
             width: empWidth,
             height: 46,
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  emp.name.isNotEmpty ? emp.name : 'Unknown',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (emp.empId.isNotEmpty)
-                  Text(
-                    emp.empId,
-                    style: TextStyle(
-                      fontSize: 9,
-                      color: Colors.grey[400],
-                      fontFamily: 'monospace',
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
+            alignment: Alignment.centerLeft,
+            child: Text(
+              emp.name.isNotEmpty ? emp.name : 'Unknown',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F2937),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
 
